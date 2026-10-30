@@ -5,31 +5,49 @@ export const wrap=a=>Math.atan2(Math.sin(a),Math.cos(a));
 export const forward=a=>({x:Math.sin(a),z:Math.cos(a)});
 export const DISC_BOUNDS={x:35,z:42},CYCLE_BOUNDS={x:90,z:67};
 export const COVER=[{x:-13,z:0,w:2.4,d:8},{x:13,z:0,w:2.4,d:8},{x:0,z:-13,w:4,d:3},{x:-22,z:-23,w:3,d:3},{x:22,z:-23,w:3,d:3}];
+export const TANK_BOUNDS={x:64,z:83},REFUGE_BOUNDS={x:15,z:22};
+export const TANK_COVER=[{x:-20,z:22,w:7,d:10},{x:21,z:0,w:7,d:12},{x:-21,z:-29,w:9,d:8},{x:26,z:-46,w:8,d:7}];
+export const REFUGE_COVER=[{x:-9,z:-4,w:2.5,d:4},{x:9,z:-4,w:2.5,d:4},{x:0,z:-10,w:2.1,d:.8}];
+export const ARCHIVE={x:0,z:-7};
+export const isVehicle=s=>s.chapter===1||s.chapter===2;
+export const boundsOf=s=>[DISC_BOUNDS,CYCLE_BOUNDS,TANK_BOUNDS,REFUGE_BOUNDS][s.chapter];
+export const coverOf=s=>[COVER,[],TANK_COVER,REFUGE_COVER][s.chapter];
+export const gateOf=s=>({x:0,z:[-36,-57,-73,-7][s.chapter]});
 const palette=['cyan','white','violet'];
 export function rng(seed){let n=seed>>>0;return()=>{n+=0x6d2b79f5;let t=n;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
-export function newProfile(name='RUNNER',color='cyan'){return{name:String(name).trim().slice(0,20)||'RUNNER',color:palette.includes(color)?color:'cyan',checkpoint:0,cleared:false,bestDisc:0,bestCycle:0}}
-export function validProfile(p){return!!p&&typeof p.name==='string'&&p.name.length<=20&&palette.includes(p.color)&&[0,1].includes(p.checkpoint)&&typeof p.cleared==='boolean'&&['bestDisc','bestCycle'].every(k=>Number.isFinite(p[k])&&p[k]>=0&&p[k]<1e9)}
+export function newProfile(name='RUNNER',color='cyan'){return{name:String(name).trim().slice(0,20)||'RUNNER',color:palette.includes(color)?color:'cyan',frame:'male',helmet:true,checkpoint:0,cleared:false,bestDisc:0,bestCycle:0,bestTank:0}}
+export function validProfile(p){return!!p&&typeof p.name==='string'&&p.name.length<=20&&palette.includes(p.color)&&[0,1,2,3].includes(p.checkpoint)&&typeof p.cleared==='boolean'&&['bestDisc','bestCycle'].every(k=>Number.isFinite(p[k])&&p[k]>=0&&p[k]<1e9)&&(p.frame===undefined||['male','female'].includes(p.frame))&&(p.bestTank===undefined||Number.isFinite(p.bestTank)&&p.bestTank>=0&&p.bestTank<1e9)}
 export function createRun({mode='story',profile=newProfile(),seed=7319}={}){
- const s={mode:['story','disc','cycle'].includes(mode)?mode:'story',profile:structuredClone(profile),seed:seed>>>0,random:rng(seed),chapter:mode==='cycle'||mode==='story'&&profile.checkpoint===1?1:0,time:0,score:mode==='story'&&profile.checkpoint===1&&Number.isFinite(profile.checkpointScore)?profile.checkpointScore:0,kills:0,wave:0,enemies:[],discs:[],trails:[],pickups:[],events:[],serial:0,combo:0,comboTime:0,finished:false,dead:false,gate:false,waveDelay:0,shake:0};
+ const s={mode:['story','disc','cycle','tank'].includes(mode)?mode:'story',profile:{...newProfile(),...structuredClone(profile)},seed:seed>>>0,random:rng(seed),chapter:mode==='tank'?2:mode==='cycle'?1:mode==='story'?profile.checkpoint:0,time:0,score:mode==='story'&&profile.checkpoint>0&&Number.isFinite(profile.checkpointScore)?profile.checkpointScore:0,kills:0,wave:0,enemies:[],discs:[],shells:[],trails:[],pickups:[],events:[],serial:0,combo:0,comboTime:0,finished:false,dead:false,gate:false,waveDelay:0,shake:0};
  enterChapter(s,s.chapter);return s;
 }
 export function enterChapter(s,n){
- s.chapter=n;s.chapterTime=0;s.enemies=[];s.discs=[];s.trails=[];s.pickups=[];s.wave=0;s.gate=false;s.waveDelay=0;s.player={id:'player',x:0,z:n?42:26,yaw:Math.PI,hp:100,energy:100,attack:0,dash:0,pulse:0,invuln:0,stagger:0,action:0,speed:n?15:0,trailTime:0,trailStart:null,alive:true};
- if(n){for(let i=0;i<3;i++)s.enemies.push({id:'bike-'+i,type:'bike',x:(i-1)*32,z:-22-i%2*8,yaw:i%2?0:Math.PI/2,hp:70,alive:true,speed:15+i,fire:4+i,turn:0,trailTime:0,trailStart:null,age:0});if(s.mode==='story'){s.profile.checkpoint=1;s.profile.checkpointScore=s.score;emit(s,'checkpoint',{chapter:1});}emit(s,'message',{text:'LIGHT CYCLE ONLINE · cut their trails, break the pursuit.'})}
- else spawnWave(s);
+ s.chapter=n;s.chapterTime=0;s.enemies=[];s.discs=[];s.shells=[];s.trails=[];s.pickups=[];s.wave=0;s.gate=false;s.waveDelay=0;s.player={id:'player',x:0,z:[26,42,65,16][n],yaw:Math.PI,turretYaw:Math.PI,hp:100,energy:100,attack:0,dash:0,pulse:0,shield:0,invuln:0,stagger:0,action:0,speed:n===1?15:0,trailTime:0,trailStart:null,alive:true};
+ if(n===1)for(let i=0;i<3;i++)s.enemies.push({id:'bike-'+i,type:'bike',x:(i-1)*32,z:-22-i%2*8,yaw:i%2?0:Math.PI/2,hp:70,maxHp:70,alive:true,speed:15+i,fire:4+i,turn:0,trailTime:0,trailStart:null,age:0});
+ else if(n===2)for(const [i,x,z]of[[0,-35,5],[1,33,-27],[2,0,-55]])s.enemies.push({id:'tank-'+i,type:'tank',x,z,yaw:0,turretYaw:0,hp:160,maxHp:160,alive:true,speed:0,attack:2+i*.8,windup:0,action:0,path:[],pathTime:0,age:0});
+ else if(n===0)spawnWave(s);
+ if(n>0&&s.mode==='story'){s.profile.checkpoint=n;s.profile.checkpointScore=s.score;emit(s,'checkpoint',{chapter:n})}
 }
 const emit=(s,kind,data={})=>s.events.push({kind,...data});
-export function walkable(s,x,z,r=.5){const b=s.chapter?CYCLE_BOUNDS:DISC_BOUNDS;if(Math.abs(x)>b.x-r||Math.abs(z)>b.z-r)return false;return !!s.chapter||!COVER.some(o=>Math.abs(x-o.x)<o.w+r&&Math.abs(z-o.z)<o.d+r)}
+export function walkable(s,x,z,r=.5){const b=boundsOf(s);if(Math.abs(x)>b.x-r||Math.abs(z)>b.z-r)return false;return !coverOf(s).some(o=>Math.abs(x-o.x)<o.w+r&&Math.abs(z-o.z)<o.d+r)}
 export function clearLine(s,a,b,r=.3){const n=Math.ceil(dist(a,b)/.45);for(let i=1;i<n;i++){const t=i/n;if(!walkable(s,a.x+(b.x-a.x)*t,a.z+(b.z-a.z)*t,r))return false}return true}
 export function move(s,a,dx,dz){if(walkable(s,a.x+dx,a.z))a.x+=dx;if(walkable(s,a.x,a.z+dz))a.z+=dz}
 export function routeTo(s,a,b){
- if(clearLine(s,a,b,.7))return[b];const nodes=[a,b];for(const o of COVER)for(const x of[-1,1])for(const z of[-1,1]){const p={x:o.x+x*(o.w+1.1),z:o.z+z*(o.d+1.1)};if(walkable(s,p.x,p.z,.7))nodes.push(p)}
- const costs=nodes.map(()=>Infinity),done=new Set(),prev=[];costs[0]=0;for(let n=0;n<nodes.length;n++){let u=-1;for(let i=0;i<nodes.length;i++)if(!done.has(i)&&(u<0||costs[i]<costs[u]))u=i;if(u<0||!Number.isFinite(costs[u]))break;if(u===1){const out=[];for(let i=1;i>0;i=prev[i])out.unshift(nodes[i]);return out}done.add(u);for(let j=0;j<nodes.length;j++)if(!done.has(j)&&clearLine(s,nodes[u],nodes[j],.7)){const next=costs[u]+dist(nodes[u],nodes[j]);if(next<costs[j]){costs[j]=next;prev[j]=u}}}return[];
+ const radius=s.chapter===2?2.5:.7;if(clearLine(s,a,b,radius))return[b];const nodes=[a,b];for(const o of coverOf(s))for(const x of[-1,1])for(const z of[-1,1]){const p={x:o.x+x*(o.w+radius+.4),z:o.z+z*(o.d+radius+.4)};if(walkable(s,p.x,p.z,radius))nodes.push(p)}
+ const costs=nodes.map(()=>Infinity),done=new Set(),prev=[];costs[0]=0;for(let n=0;n<nodes.length;n++){let u=-1;for(let i=0;i<nodes.length;i++)if(!done.has(i)&&(u<0||costs[i]<costs[u]))u=i;if(u<0||!Number.isFinite(costs[u]))break;if(u===1){const out=[];for(let i=1;i>0;i=prev[i])out.unshift(nodes[i]);return out}done.add(u);for(let j=0;j<nodes.length;j++)if(!done.has(j)&&clearLine(s,nodes[u],nodes[j],radius)){const next=costs[u]+dist(nodes[u],nodes[j]);if(next<costs[j]){costs[j]=next;prev[j]=u}}}return[];
 }
 function spawnWave(s){s.wave++;const positions=[[-22,15],[22,14],[0,-27],[-28,-9],[28,-12]];for(let i=positions.length-1;i>0;i--){const j=Math.floor(s.random()*(i+1));[positions[i],positions[j]]=[positions[j],positions[i]]}const count=s.wave===1?2:s.wave===2?3:4;s.enemies=positions.slice(0,count).map(([x,z],i)=>({id:'guard-'+s.wave+'-'+i,type:s.wave===3&&i===3?'sentinel':i%2?'striker':'disc',x,z,yaw:0,hp:s.wave===3&&i===3?140:55+s.wave*8,maxHp:s.wave===3&&i===3?140:55+s.wave*8,alive:true,attack:1.5+i*.5,windup:0,stagger:0,action:0,path:[],pathTime:0,age:0}));emit(s,'wave',{wave:s.wave});}
-export function targetOf(s){const p=s.player;return s.enemies.filter(e=>e.alive&&dist(p,e)<(s.chapter?48:34)&&clearLine(s,p,e)).sort((a,b)=>dist(a,p)-dist(b,p))[0]||null}
+export function targetOf(s){const p=s.player;return s.enemies.filter(e=>e.alive&&dist(p,e)<(s.chapter===2?72:s.chapter===1?48:34)&&clearLine(s,p,e)).sort((a,b)=>dist(a,p)-dist(b,p))[0]||null}
+export function canAccessArchive(s){return s.chapter===3&&dist(s.player,ARCHIVE)<3.2}
 export function act(s,action){
  if(s.dead||s.finished)return false;const p=s.player,target=targetOf(s);
+ if(action==='interact'&&canAccessArchive(s)){s.profile.flynnFound=true;finish(s);return true}
+ if(s.chapter===3)return false;
+ if(s.chapter===2){
+  if(action==='attack'&&p.attack<=0){p.attack=1.05;p.action=.35;fireShell(s,p,p.turretYaw,48);return true}
+  if(action==='pulse'&&p.pulse<=0&&p.energy>=35){p.energy-=35;p.pulse=9;p.shield=2.8;emit(s,'shield',{x:p.x,z:p.z});return true}
+  return false;
+ }
  if(action==='attack'){
   if(p.attack>0||(!target||s.chapter||dist(p,target)>=3.2)&&s.discs.some(d=>d.owner==='player'))return false;p.attack=s.chapter?.6:.58;p.action=.42;
   if(!s.chapter&&target&&dist(p,target)<3.2){s.combo=s.comboTime>0?s.combo%3+1:1;s.comboTime=1.8;p.yaw=Math.atan2(target.x-p.x,target.z-p.z);hurt(s,target,22+s.combo*6,true);target.stagger=.5;emit(s,'slash',{x:p.x,z:p.z,yaw:p.yaw,combo:s.combo});}
@@ -40,7 +58,7 @@ export function act(s,action){
  return false;
 }
 function hurt(s,a,n,playerHit=false){
- if(!a.alive||a.id==='player'&&a.invuln>0)return false;a.hp=Math.max(0,a.hp-n);if(a.id==='player'){a.invuln=.45;s.shake=.3;emit(s,'hurt',{x:a.x,z:a.z,amount:n})}else{a.action=.2;emit(s,'hit',{x:a.x,z:a.z,amount:n});if(playerHit){s.score+=Math.round(n);s.player.energy=clamp(s.player.energy+2,0,100)}}
+ if(!a.alive||a.id==='player'&&a.invuln>0)return false;if(a.id==='player'&&a.shield>0)n*=.2;a.hp=Math.max(0,a.hp-n);if(a.id==='player'){a.invuln=.45;s.shake=.3;emit(s,'hurt',{x:a.x,z:a.z,amount:n})}else{a.action=.2;emit(s,'hit',{x:a.x,z:a.z,amount:n});if(playerHit){s.score+=Math.round(n);s.player.energy=clamp(s.player.energy+2,0,100)}}
  if(a.hp<=0){a.alive=false;emit(s,'derez',{x:a.x,z:a.z,bike:s.chapter===1,player:a.id==='player'});if(a.id==='player'){s.dead=true;emit(s,'defeat')}else{s.kills++;s.score+=s.chapter?350:a.type==='sentinel'?400:140;if(!s.chapter)s.pickups.push({id:'energy-'+s.serial++,x:a.x,z:a.z,age:0});}}
  return true;
 }
@@ -70,13 +88,39 @@ function bikeTick(s,b,dt,input){
  if(!walkable(s,to.x,to.z,.9)||b.age>1.4&&trailDanger(s,from,to,b)){crash(s,b);return}b.x=to.x;b.z=to.z;
  if(!b.trailStart)b.trailStart={...from};b.trailTime+=dt;if(dist(b,b.trailStart)>1.4){s.trails.push({id:s.serial++,owner:b.id,a:b.trailStart,b:{x:b.x,z:b.z},born:s.time});b.trailStart={x:b.x,z:b.z}}
 }
+function fireShell(s,a,yaw,damage){const v=forward(yaw);s.shells.push({id:'shell-'+s.serial++,owner:a.id,x:a.x+v.x*3,z:a.z+v.z*3,dx:v.x,dz:v.z,age:0,damage});emit(s,'cannon',{x:a.x+v.x*3,z:a.z+v.z*3,owner:a.id})}
+function tankTick(s,t,dt,input={}){
+ if(!t.alive)return;t.action=Math.max(0,t.action-dt);const p=s.player;
+ if(t.id==='player'){
+  t.yaw-=clamp(input.steer||0,-1,1)*dt*1.05;const throttle=Number.isFinite(input.throttle)?clamp(input.throttle,-1,1):1,boost=input.boost&&t.energy>2;
+  const wanted=(input.brake?0:throttle)*(boost?13:8);t.speed+=(wanted-t.speed)*Math.min(1,dt*3);t.energy=clamp(t.energy+dt*(boost?-18:9),0,100);t.boosting=boost;
+  const target=targetOf(s),aim=input.aimActive?input.aim:target?Math.atan2(target.x-t.x,target.z-t.z):Number.isFinite(input.aim)?input.aim:t.yaw;t.turretYaw+=wrap(aim-t.turretYaw)*Math.min(1,dt*5);
+ }else{
+  const d=dist(t,p),visible=clearLine(s,t,p);t.turretYaw+=wrap(Math.atan2(p.x-t.x,p.z-t.z)-t.turretYaw)*Math.min(1,dt*2);
+  if(t.windup>0){t.windup-=dt;t.speed=0;if(t.windup<=0){fireShell(s,t,t.turretYaw,24);t.action=.35;t.attack=2.8}}else if(d<58&&visible){t.speed=0;t.attack-=dt;if(t.attack<=0)t.windup=1.25}else{
+   t.pathTime-=dt;if(t.pathTime<=0){t.path=routeTo(s,t,p);t.pathTime=1.5}const goal=t.path[0];if(goal){if(dist(t,goal)<3)t.path.shift();const wanted=Math.atan2(goal.x-t.x,goal.z-t.z);t.yaw+=clamp(wrap(wanted-t.yaw),-dt*.8,dt*.8);t.speed=Math.abs(wrap(wanted-t.yaw))<.8?4:0}else t.speed=0;
+  }
+ }
+ const v=forward(t.yaw),nx=t.x+v.x*t.speed*dt,nz=t.z+v.z*t.speed*dt,blocked=s.enemies.some(e=>e.alive&&e!==t&&dist(e,{x:nx,z:nz})<4.5)||(t!==p&&dist(p,{x:nx,z:nz})<4.5);
+ if(!blocked&&walkable(s,nx,nz,2.3)){t.x=nx;t.z=nz}else t.speed=0;
+}
+function shellsTick(s,dt){
+ for(const shell of s.shells){shell.age+=dt;const from={x:shell.x,z:shell.z};shell.x+=shell.dx*55*dt;shell.z+=shell.dz*55*dt;const victims=shell.owner==='player'?s.enemies:[s.player];let impact=!clearLine(s,from,shell,.25)||!walkable(s,shell.x,shell.z,.25);
+  // Check terrain before actors so a cannon cannot damage through a rock face.
+  if(!impact)for(const a of victims)if(a.alive&&pointSegment(a,from,shell)<2.5){hurt(s,a,shell.damage,shell.owner==='player');impact=true;break}
+  if(impact){shell.gone=true;emit(s,'explosion',{x:shell.x,z:shell.z})}if(shell.age>2.8)shell.gone=true;
+ }s.shells=s.shells.filter(shell=>!shell.gone);
+}
 export function advance(s,seconds,input={}){
  const dt=clamp(Number(seconds)||0,0,.05);s.events=[];if(s.dead||s.finished)return s.events;s.time+=dt;s.chapterTime+=dt;const p=s.player;s.shake=Math.max(0,s.shake-dt);for(const key of['attack','dash','pulse','invuln','action'])p[key]=Math.max(0,p[key]-dt);s.comboTime=Math.max(0,s.comboTime-dt);
- if(s.chapter){bikeTick(s,p,dt,input);for(const e of s.enemies)bikeTick(s,e,dt,input);s.trails=s.trails.filter(t=>s.time-t.born<16).slice(-1600)}
+ p.shield=Math.max(0,(p.shield||0)-dt);
+ if(s.chapter===1){bikeTick(s,p,dt,input);for(const e of s.enemies)bikeTick(s,e,dt,input);s.trails=s.trails.filter(t=>s.time-t.born<16).slice(-1600)}
+ else if(s.chapter===2){tankTick(s,p,dt,input);for(const e of s.enemies)tankTick(s,e,dt);shellsTick(s,dt)}
  else{p.energy=clamp(p.energy+dt*10,0,100);let x=input.x||0,z=input.z||0,n=Math.hypot(x,z);p.moving=n>.08;if(p.dashTime>0){p.dashTime-=dt;move(s,p,p.dashX*dt*23,p.dashZ*dt*23)}else if(p.moving){x/=Math.max(1,n);z/=Math.max(1,n);p.yaw=Math.atan2(x,z);move(s,p,x*dt*7,z*dt*7)}for(const e of s.enemies)if(e.alive)guardTick(s,e,dt);for(const orb of s.pickups){orb.age+=dt;if(dist(orb,p)<2){p.hp=clamp(p.hp+9,0,100);p.energy=clamp(p.energy+18,0,100);orb.gone=true;emit(s,'pickup',{x:orb.x,z:orb.z})}}s.pickups=s.pickups.filter(o=>!o.gone)}
- if(s.dead)return s.events;if(input.attack)act(s,'attack');if(input.dash)act(s,'dash');if(input.pulse)act(s,'pulse');discsTick(s,dt);if(s.dead)return s.events;
+ if(s.dead)return s.events;if(input.attack)act(s,'attack');if(input.dash)act(s,'dash');if(input.pulse)act(s,'pulse');if(input.interact)act(s,'interact');discsTick(s,dt);if(s.dead)return s.events;
+ if(s.chapter===3)return s.events;
  if(s.enemies.every(e=>!e.alive)&&!s.gate){if(!s.chapter&&s.wave<3){s.waveDelay+=dt;if(s.waveDelay>1.6){s.waveDelay=0;spawnWave(s)}}else{s.gate=true;emit(s,'gate');if(s.mode!=='story')finish(s)}}
- if(s.mode==='story'&&s.gate&&dist(p,{x:0,z:s.chapter?-57:-36})<(s.chapter?6:3)){if(!s.chapter)enterChapter(s,1);else finish(s)}return s.events;
+ if(s.mode==='story'&&s.gate&&dist(p,gateOf(s))<(isVehicle(s)?6:3))enterChapter(s,s.chapter+1);return s.events;
 }
-function finish(s){s.finished=true;if(s.chapter){s.profile.bestCycle=Math.max(s.profile.bestCycle,s.score);if(s.mode==='story')s.profile.cleared=true}else s.profile.bestDisc=Math.max(s.profile.bestDisc,s.score);emit(s,'victory')}
-export function objective(s){if(s.chapter)return s.gate?'Reach the uplink at the far end of the arena':'Break the pursuit · '+s.enemies.filter(e=>e.alive).length+' cycles remaining';if(s.gate)return s.mode==='story'?'Reach the transit gate · your light cycle is waiting':'Disc arena cleared';return'Clear the quarantine · wave '+s.wave+' / 3'}
+function finish(s){s.finished=true;const key=s.chapter===2?'bestTank':s.chapter===1?'bestCycle':'bestDisc';if(s.chapter<3)s.profile[key]=Math.max(s.profile[key]||0,s.score);if(s.mode==='story')s.profile.cleared=true;emit(s,'victory')}
+export function objective(s){if(s.chapter===3)return s.profile.flynnFound?'Flynn’s archive recovered':'Investigate the white-lit refuge';if(s.chapter===2)return s.gate?'Reach the refuge beyond the ridge':'Cross the Outlands · '+s.enemies.filter(e=>e.alive).length+' tanks remaining';if(s.chapter===1)return s.gate?'Reach the uplink at the far end of the arena':'Break the pursuit · '+s.enemies.filter(e=>e.alive).length+' cycles remaining';if(s.gate)return s.mode==='story'?'Reach the transit gate':'Disc arena cleared';return'Clear the quarantine · wave '+s.wave+' / 3'}

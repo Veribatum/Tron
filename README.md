@@ -1,32 +1,33 @@
 # TRON · GRIDRUNNER
 
-A personal, unofficial TRON-inspired fan game. The first playable combines third-person disc combat with a light-cycle escape. Built for modern phone and desktop browsers with WebGL.
+An unofficial TRON-inspired browser game: third-person disc combat, light-cycle pursuit, light tanks, and a story beginning with a survivor of the old Grid. Buildless WebGL; local assets; phone and desktop controls.
 
-## First playable
+## Chapter One · 0.2
 
-- **Escape the Archive:** survive three security waves, pass the transit gate, take a light cycle, break the pursuit, and reach the uplink.
-- **Disc Arena:** returning identity discs, wall ricochets, three-hit close combos, telegraphed enemy attacks, dodge invulnerability, an energy pulse, cover, and restorative drops.
-- **Light Cycle Arena:** analog steering, boost, brakes, identity-disc shots, enemy riders, and lethal light walls—including your own older trail. Trails persist for 16 seconds. Rival steering looks ahead for walls and trails.
-- Original articulated program and cycle models, recognizer flyovers, a circuit city backdrop, bloom, synthesized electronic music, engine sound and combat effects.
-- Sector checkpoint saving, program handle and circuit color, arena records, pause/retry, geographic radar, and phone controls in portrait and landscape.
+Escape the Archive, cross the Perimeter by light cycle, take an armored route through the Outlands, and investigate an unlisted refuge. A discoverable personal archive points toward Flynn. The recording is original text written for this fan game.
 
-This is one playable escape mission and two repeatable combat arenas. It is not an open-world campaign or a complete commercial-scale TRON game. Recognizers are scenery in this build; light cycles are the controllable vehicle.
+Three arenas let you replay disc, cycle or tank combat directly. Arena practice preserves the campaign checkpoint. The story now introduces the situation without explaining combat tricks; controls are available from Pause or the title screen.
+
+The rebuilt programs have smooth shaped suits, layered armor, articulated fingers, helmets and uncovered faces. Program settings offer male/female frames and three circuit colors. Light tanks have independent hull/turret movement, cannon projectiles, matching rock cover, telegraphed enemy fire and a temporary energy shield. Recognizers are scenery.
+
+This is a short first chapter with three repeatable arenas, not a full open-world game. There is no multiplayer or flight mode.
 
 ## Controls
 
-| | Desktop | Phone |
+| Action | Desktop | Phone |
 |---|---|---|
-| Walk | WASD / arrow keys | Left stick |
-| Look | Drag the world | Drag the world |
-| Throw disc / strike nearby | Click / Space | DISC / STRIKE |
-| Dodge on foot | Shift | DODGE |
-| Energy pulse | Q | PULSE |
-| Cycle steering | A / D | Left stick horizontal |
-| Boost | Shift | Hold BOOST / stick fully forward |
-| Brake | S | Hold BRAKE / stick back |
+| Move / drive | WASD / arrows | Left stick |
+| Look / aim | Drag the world | Drag the world |
+| Disc / strike / cannon | Click / Space | Main action |
+| Dodge / cycle boost | Shift | DODGE / BOOST |
+| Pulse / tank shield | Q | PULSE / SHIELD |
+| Brake | S | BRAKE / stick back |
+| Access archive | E | ACCESS near terminal |
 | Pause | Escape | Pause button |
 
-Your story resumes at the start of the saved sector. Arena practice does not skip the campaign. Starting a new escape replaces the sector checkpoint; your program handle, color and best arena scores remain.
+Tanks stop when the drive stick is released. Their turret tracks a visible target automatically; dragging the view gives manual aim briefly. Unlike a light cycle, a tank can stop behind cover.
+
+Saves use the existing `gridrunner-profile-v1` key. Previous names, colors, scores and sector checkpoints remain valid. A previous cycle checkpoint continues into the new Outlands sector. New escape replaces only campaign progress; appearance and arena records remain. Continue resumes the saved sector rather than the precise position in a fight.
 
 ## Run and verify
 
@@ -38,14 +39,14 @@ npm test
 npm run check
 ```
 
-GitHub Actions runs the engine suite, source checks, and real Chromium desktop/phone UI checks. It saves screenshots as `gridrunner-browser-proof`.
+GitHub Actions runs engine tests, source checks, and real Chromium desktop/phone checks. Browser coverage includes actual disc damage, portrait/landscape touch controls, appearance selection, cycle steering/boost/braking, tank drive/cannon/shield, legacy checkpoint resume, and discovering the archive through normal movement and interaction. Screenshots are retained as `gridrunner-browser-proof`.
 
 ## GitHub Pages
 
-Publish branch **main**, directory **/(root)** in the repository's Pages settings. `.nojekyll` is included. All asset paths are relative so the game works under a repository subpath.
+Publish branch **main**, directory **/(root)**. `.nojekyll` and relative asset paths support the repository subpath.
 
 ## Credits
 
-- Original game rules, procedural models, graphics, interface and synthesized audio: this project.
-- Three.js: MIT license, preserved in `vendor/LICENSE-THREE.txt`.
-- TRON belongs to Disney. This is an independent, unofficial fan project with no affiliation or endorsement. No movie footage, extracted game models, commercial soundtracks, or official logos are bundled.
+Original game rules, procedural models, graphics, interface, narrative and synthesized audio: this project. Three.js uses its MIT license in `vendor/LICENSE-THREE.txt`.
+
+TRON belongs to Disney. This is an independent, unofficial fan project with no affiliation or endorsement. No movie footage, extracted game models, commercial soundtracks, or official logos are bundled.
