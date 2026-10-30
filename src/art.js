@@ -18,7 +18,7 @@ function surface(rings,segments=28){
 function circuit(g,mat,points,r=.012){return mesh(g,new T.TubeGeometry(new T.CatmullRomCurve3(points.map(p=>new T.Vector3(...p))),20,r,5,false),mat)}
 function oval(g,mat,r,x,y,z,sx,sy,sz){const m=sphere(g,mat,r,x,y,z);m.scale.set(sx,sy,sz);return m}
 export function programModel(color=COLORS.cyan,{heavy=false,rider=false,frame='male',helmet=true}={}){
- const female=frame==='female',g=new T.Group(),suit=new T.MeshStandardMaterial({color:0x182530,roughness:.56,metalness:.3}),armor=new T.MeshStandardMaterial({color:heavy?0x3b434b:0x354450,roughness:.3,metalness:.65}),edge=metal(0x526572),glow=light(color),rubber=metal(0x080e16),face=new T.MeshStandardMaterial({color:female?0xd4b4a0:0xbca78e,roughness:.68,metalness:0}),hair=metal(0x10161c),rig={};
+ const female=frame==='female',g=new T.Group(),suit=new T.MeshStandardMaterial({color:0x182530,roughness:.56,metalness:.3}),armor=new T.MeshStandardMaterial({color:heavy?0x3b434b:0x354450,roughness:.46,metalness:.4}),edge=metal(0x526572),glow=light(color),rubber=metal(0x080e16),face=new T.MeshStandardMaterial({color:female?0xd4b4a0:0xbca78e,roughness:.68,metalness:0}),hair=metal(0x10161c),rig={};
  const hips=new T.Group();hips.position.y=1.03;g.add(hips);rig.hips=hips;
  const pelvis=mesh(hips,surface([[-.12,.19,.12],[0,.245,.15],[.1,female?.21:.23,.14],[.16,.18,.13]]),suit);pelvis.scale.x=heavy?1.25:1;
  const torso=new T.Group();hips.add(torso);rig.torso=torso;
@@ -33,7 +33,7 @@ export function programModel(color=COLORS.cyan,{heavy=false,rider=false,frame='m
  for(let i=0;i<3;i++){const plate=mesh(torso,surface([[.13+i*.068,.09,.022],[.17+i*.068,.10,.025],[.19+i*.068,.08,.01]],16),armor,0,0,.133);}
  box(torso,glow,.055,.025,.017,0,.09,.157);
  const back=discModel(color);back.scale.setScalar(.73);back.position.set(0,.48,-.18);torso.add(back);rig.backDisc=back;
- rod(torso,rubber,.077,.14,0,.77,0);const collar=mesh(torso,new T.TorusGeometry(.092,.025,8,24),armor,0,.74,0);collar.rotation.x=Math.PI/2;
+ rod(torso,rubber,.077,.14,0,.77,0);const collar=mesh(torso,new T.TorusGeometry(.082,.014,8,24),armor,0,.74,0);collar.rotation.x=Math.PI/2;
  const head=new T.Group();head.position.y=.91;torso.add(head);rig.head=head;
  mesh(head,surface([[-.16,.07,.065],[-.12,.11,.09],[-.02,.142,.127],[.10,.137,.12],[.18,.09,.085],[.205,.018,.02]],28),helmet?armor:face);
  if(helmet){
@@ -43,12 +43,12 @@ export function programModel(color=COLORS.cyan,{heavy=false,rider=false,frame='m
   for(const side of[-1,1]){oval(head,rubber,.067,side*.14,.018,0,.32,1,1);circuit(head,glow,[[side*.15,-.055,-.02],[side*.155,.035,-.035],[side*.13,.125,-.025]],.009)}
  }else{
   oval(head,hair,.146,0,.10,-.025,1, .77, .94);if(female){for(const side of[-1,1])oval(head,hair,.105,side*.125,-.04,-.04,.43,2.1,.85)}
-  for(const side of[-1,1]){oval(head,face,.035,side*.142,-.01,.008,.4,1,.65);oval(head,rubber,.018,side*.056,.025,.126,1,.32,.25);circuit(head,hair,[[side*.025,.057,.125],[side*.057,.068,.12],[side*.08,.058,.102]],.006)}
-  oval(head,face,.028,0,-.015,.13,.45,1,.85);circuit(head,metal(0x805d58),[[-.03,-.076,.105],[0,-.08,.117],[.03,-.076,.105]],.004);
+  for(const side of[-1,1]){oval(head,face,.035,side*.142,-.01,.008,.4,1,.65);oval(head,new T.MeshStandardMaterial({color:0xcbd3d4,roughness:.65}),.023,side*.056,.025,.13,1,.31,.42);oval(head,rubber,.009,side*.055,.025,.142,.85,1,.35);circuit(head,hair,[[side*.025,.057,.125],[side*.057,.068,.12],[side*.08,.058,.102]],.006)}
+  oval(head,face,.028,0,-.015,.137,.55,1.25,1.1);oval(head,new T.MeshStandardMaterial({color:0x986a66,roughness:.8}),.027,0,-.078,.122,1.12,.23,.35);for(const side of[-1,1])oval(head,face,.05,side*.073,-.043,.079,.8,.7,.7);
  }
  for(const side of[-1,1]){
   const suffix=side<0?'L':'R',shoulder=new T.Group();shoulder.position.set(side*(heavy?.385:female?.265:.305),.625,0);torso.add(shoulder);
-  oval(shoulder,armor,.12,side*.015,-.035,0,heavy?1.45:1,.78,1);circuit(shoulder,glow,[[side*.05,.017,.083],[side*.105,-.04,.06],[side*.095,-.10,.018]],.009);
+  oval(shoulder,armor,female?.095:.105,side*.015,-.035,0,heavy?1.45:1,.78,1);circuit(shoulder,glow,[[side*.05,.017,.083],[side*.105,-.04,.06],[side*.095,-.10,.018]],.009);
   mesh(shoulder,surface([[-.32,.055,.057],[-.24,.075,.078],[-.13,female?.075:.09,.085],[-.06,.07,.07]]),suit);
   const elbow=new T.Group();elbow.position.y=-.325;shoulder.add(elbow);oval(elbow,rubber,.059,0,0,0,1,.9,1);
   mesh(elbow,surface([[-.29,.043,.045],[-.22,.065,.063],[-.1,.073,.067],[-.045,.06,.055]]),armor);
