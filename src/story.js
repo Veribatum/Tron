@@ -1,4 +1,4 @@
-import {CHAPTERS} from './world.js?v=4';
+import {CHAPTERS} from './world.js?v=5';
 const shot=(speaker,text,camera,look)=>({speaker,text,camera,look});
 export function sceneFor(chapter){
  const scenes=[
@@ -14,6 +14,10 @@ export function sceneFor(chapter){
 export const ARCHIVE_SCENE={title:'F / PERSONAL ARCHIVE',shots:[
  shot('FLYNN / STORED RECORDING','The Grid remembers people through their names. If its caretaker can erase those names, freedom becomes permission. I left a root key in the civic relay.',[-4,2.4,-5],[0,2,-10]),
  shot('ECHO','The Warden turned that relay into a kill list. We don’t need an exit. We need to break its link to the city. The service door leads into Argon.',[3,2.8,-3],[0,1.5,-10])
+]};
+export const RELAY_SCENE={title:'THE LIST OF THE LIVING',shots:[
+ shot('ECHO','These are not corrupt files. They are people. Mara, the residents outside—every name on this relay is queued for erasure. Flynn’s key can disconnect the list.',[-41,2.8,-34],[-38,1.3,-42]),
+ shot('MARA','The Warden moved the erasure command above the city. I unlocked a jet at Skyport 07. Bring our names home.',[30,4,-65],[37,2,-77])
 ]};
 export function recap(s){
  const task=[

@@ -1,5 +1,5 @@
-import {CLIPS} from './motion.js?v=4';
-import {CITY_BOUNDS,SKY_BOUNDS,CITY_COVER,CITY_ENTRY,CITY_RELAY,SKYPORT,REFUGE_EXIT,PATROL_ROUTES,CIVIC_ROUTES,SKY_TOWERS,SKY_CORES,SKY_EXIT} from './world.js?v=4';
+import {CLIPS} from './motion.js?v=5';
+import {CITY_BOUNDS,SKY_BOUNDS,CITY_COVER,CITY_ENTRY,CITY_RELAY,SKYPORT,REFUGE_EXIT,PATROL_ROUTES,CIVIC_ROUTES,SKY_TOWERS,SKY_CORES,SKY_EXIT} from './world.js?v=5';
 export {CITY_BOUNDS,SKY_BOUNDS,CITY_COVER,CITY_RELAY,SKYPORT,REFUGE_EXIT,SKY_TOWERS,SKY_EXIT};
 export const VERSION=1;
 export const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -46,7 +46,7 @@ function pendingTick(s,a){
   const target=s.enemies.find(e=>e.id===pending.target&&e.alive);if(target&&dist(a,target)<3.5&&clearLine(s,a,target)){hurt(s,target,22+pending.combo*6,true);target.stagger=.5}emit(s,'slash',{x:a.x,z:a.z,yaw:a.yaw,combo:pending.combo});
  }else if(pending.kind==='pulse'){
   for(const e of s.enemies)if(e.alive&&dist(a,e)<9&&clearLine(s,a,e)){hurt(s,e,25,true);e.stagger=e.type==='sentinel'?.8:2.5}emit(s,'pulse',{x:a.x,z:a.z});
- }else if(pending.kind==='archive'&&canAccessArchive(s)){s.profile.flynnFound=true;s.archiveRead=true;s.gate=true;emit(s,'archive')}else if(pending.kind==='relay'&&canAccessRelay(s)){s.relayHacked=true;if(s.mode==='story')s.profile.relayHacked=true;s.score+=s.cityAlarms?300:800;if(s.mode==='story')s.profile.checkpointScore=s.score;emit(s,'relay')}else if(pending.kind==='mara'){emit(s,'mara')}
+ }else if(pending.kind==='archive'&&canAccessArchive(s)){s.profile.flynnFound=true;s.archiveRead=true;s.gate=true;emit(s,'archive')}else if(pending.kind==='relay'&&canAccessRelay(s)){s.relayHacked=true;if(s.mode==='story')s.profile.relayHacked=true;s.score+=s.cityAlarms?300:800;if(s.mode==='story')s.profile.checkpointScore=s.score;emit(s,'relay')}else if(pending.kind==='board'&&canBoardJet(s)){if(s.mode==='story')enterChapter(s,5);else finish(s)}else if(pending.kind==='mara'){emit(s,'mara')}
 }
 
 export function walkable(s,x,z,r=.5){const b=boundsOf(s);if(Math.abs(x)>b.x-r||Math.abs(z)>b.z-r)return false;return !coverOf(s).some(o=>Math.abs(x-o.x)<o.w+r&&Math.abs(z-o.z)<o.d+r)}
@@ -60,11 +60,13 @@ function spawnWave(s){s.wave++;const positions=[[-22,15],[22,14],[0,-27],[-28,-9
 export function targetOf(s){if(s.chapter===5)return flightTarget(s);const p=s.player;return s.enemies.filter(e=>e.alive&&dist(p,e)<(s.chapter===2?72:s.chapter===1?48:34)&&clearLine(s,p,e)).sort((a,b)=>dist(a,p)-dist(b,p))[0]||null}
 export function canAccessArchive(s){return s.chapter===3&&!s.archiveRead&&dist(s.player,ARCHIVE)<3.2}
 export function canAccessRelay(s){return s.chapter===4&&!s.relayHacked&&dist(s.player,CITY_RELAY)<3.6}
+export function canBoardJet(s){return s.chapter===4&&s.relayHacked&&dist(s.player,SKYPORT)<6}
 export function canTalkMara(s){return isCity(s)&&dist(s.player,{x:-5,z:67})<3.3}
 export function act(s,action){
  if(s.dead||s.finished)return false;const p=s.player,target=targetOf(s);
  if(action==='interact'&&canAccessArchive(s)&&!p.pending){playClip(p,'interact');p.pending={kind:'archive',impact:CLIPS.interact.impact};return true}
  if(action==='interact'&&canAccessRelay(s)&&!p.pending){playClip(p,'interact');p.pending={kind:'relay',impact:CLIPS.interact.impact};return true}
+ if(action==='interact'&&canBoardJet(s)&&!p.pending){playClip(p,'interact');p.pending={kind:'board',impact:CLIPS.interact.impact};return true}
  if(action==='interact'&&canTalkMara(s)&&!p.pending){playClip(p,'interact');p.pending={kind:'mara',impact:CLIPS.interact.impact};return true}
  if(s.chapter===5){if(action==='attack'&&p.attack<=0){p.attack=.16;fireBolt(s,p,true);return true}return false}
  if(s.chapter===3||s.chapter===6)return false;
@@ -114,7 +116,7 @@ function bikeTick(s,b,dt,input){
  if(!walkable(s,to.x,to.z,.9)||b.age>1.4&&trailDanger(s,from,to,b)){crash(s,b);return}b.x=to.x;b.z=to.z;
  if(!b.trailStart)b.trailStart={...from};b.trailTime+=dt;if(dist(b,b.trailStart)>1.4){s.trails.push({id:s.serial++,owner:b.id,a:b.trailStart,b:{x:b.x,z:b.z},born:s.time});b.trailStart={x:b.x,z:b.z}}
 }
-function fireShell(s,a,yaw,damage){const v=forward(yaw);s.shells.push({id:'shell-'+s.serial++,owner:a.id,x:a.x+v.x*3.4,z:a.z+v.z*3.4,dx:v.x,dz:v.z,age:0,damage});emit(s,'cannon',{x:a.x+v.x*3.4,z:a.z+v.z*3.4,owner:a.id})}
+function fireShell(s,a,yaw,damage){const v=forward(yaw);s.shells.push({id:'shell-'+s.serial++,owner:a.id,x:a.x+v.x*3.4,z:a.z+v.z*3.4,dx:v.x,dz:v.z,age:0,damage});emit(s,'cannon',{x:a.x+v.x*3.4,y:2.05,z:a.z+v.z*3.4,dx:v.x,dz:v.z,owner:a.id})}
 function tankTick(s,t,dt,input={}){
  if(!t.alive)return;t.action=Math.max(0,t.action-dt);const p=s.player;
  if(t.id==='player'){
@@ -131,10 +133,9 @@ function tankTick(s,t,dt,input={}){
  if(!blocked&&walkable(s,nx,nz,2.3)){t.x=nx;t.z=nz}else t.speed=0;
 }
 function shellsTick(s,dt){
- for(const shell of s.shells){shell.age+=dt;const from={x:shell.x,z:shell.z};shell.x+=shell.dx*55*dt;shell.z+=shell.dz*55*dt;const victims=shell.owner==='player'?s.enemies:[s.player];let impact=!clearLine(s,from,shell,.25)||!walkable(s,shell.x,shell.z,.25);
-  // Check terrain before actors so a cannon cannot damage through a rock face.
-  if(!impact)for(const a of victims)if(a.alive&&pointSegment(a,from,shell)<2.5){hurt(s,a,shell.damage,shell.owner==='player');impact=true;break}
-  if(impact){shell.gone=true;emit(s,'explosion',{x:shell.x,z:shell.z})}if(shell.age>2.8)shell.gone=true;
+ for(const shell of s.shells){shell.age+=dt;const victims=shell.owner==='player'?s.enemies:[s.player],step=55*dt,hit=tankRay(s,shell,{x:shell.dx,z:shell.dz},victims,step);shell.x+=shell.dx*hit.distance;shell.z+=shell.dz*hit.distance;
+  if(hit.target)hurt(s,hit.target,shell.damage,shell.owner==='player');
+  if(hit.blocked||hit.target){shell.gone=true;emit(s,'explosion',{x:shell.x,y:2.05,z:shell.z})}if(shell.age>2.8)shell.gone=true;
  }s.shells=s.shells.filter(shell=>!shell.gone);
 }
 function spawnCity(s){
@@ -197,12 +198,24 @@ function boltsTick(s,dt){
 export function rayBox(origin,direction,box,pad=0){
  let near=0,far=Infinity;for(const [axis,extent]of[['x','w'],['z','d']]){const min=box[axis]-box[extent]-pad,max=box[axis]+box[extent]+pad,d=direction[axis];if(Math.abs(d)<.00001){if(origin[axis]<min||origin[axis]>max)return Infinity;continue}let a=(min-origin[axis])/d,b=(max-origin[axis])/d;if(a>b)[a,b]=[b,a];near=Math.max(near,a);far=Math.min(far,b);if(near>far)return Infinity}return far<0?Infinity:near;
 }
+// The reticle and moving shells share the same first-hit trace, including arena edges.
+function tankRay(s,origin,v,victims,maxDistance){
+ let distance=maxDistance,target=null,blocked=false;const b=boundsOf(s);
+ for(const axis of['x','z'])if(Math.abs(v[axis])>.00001){const edge=((v[axis]>0?b[axis]-.25:-b[axis]+.25)-origin[axis])/v[axis];if(edge>=0&&edge<distance){distance=edge;blocked=true}}
+ for(const o of coverOf(s)){const t=rayBox(origin,v,o,.25);if(t<=distance){distance=t;target=null;blocked=true}}
+ for(const e of victims)if(e.alive){const x=e.x-origin.x,z=e.z-origin.z,t=x*v.x+z*v.z,side=x*x+z*z-t*t;if(side<=2.5**2){const half=Math.sqrt(Math.max(0,2.5**2-side)),near=Math.max(0,t-half);if(t+half>=0&&near<distance){distance=near;target=e;blocked=false}}}
+ return{distance,target,blocked};
+}
 export function aimSolution(s){
  const p=s.player;if(s.chapter===5){const target=flightTarget(s),v=flightVector(p.yaw,p.pitch);return{point:target?{x:target.x,y:target.y,z:target.z}:{x:p.x+v.x*120,y:p.y+v.y*120,z:p.z+v.z*120},target,blocked:false}}
- const v=forward(p.turretYaw),origin={x:p.x+v.x*3.4,z:p.z+v.z*3.4};let range=100,target=null,blocked=false;
- for(const o of coverOf(s)){const t=rayBox(origin,v,o,.25);if(t<range){range=t;target=null;blocked=true}}
- for(const e of s.enemies)if(e.alive){const x=e.x-origin.x,z=e.z-origin.z,t=x*v.x+z*v.z,side=x*x+z*z-t*t;if(t>0&&side<2.5**2){const hit=t-Math.sqrt(Math.max(0,2.5**2-side));if(hit<range){range=hit;target=e;blocked=false}}}
- return{point:{x:origin.x+v.x*range,y:2.05,z:origin.z+v.z*range},target,blocked,distance:range};
+ const v=forward(p.turretYaw),origin={x:p.x+v.x*3.4,z:p.z+v.z*3.4},hit=tankRay(s,origin,v,s.enemies,100);
+ return{...hit,point:{x:origin.x+v.x*hit.distance,y:2.05,z:origin.z+v.z*hit.distance}};
+}
+export function navigationTarget(s){
+ if(s.chapter!==5)return{point:gateOf(s),label:s.chapter===4?(s.relayHacked?'SKYPORT':'CIVIC RELAY'):s.chapter===3?(s.archiveRead?'SERVICE DOOR':'FLYNN’S TERMINAL'):'TRANSIT'};
+ if(s.gate)return{point:SKY_EXIT,label:'ECHO / RETURN SIGNAL'};
+ const remaining=s.cores.filter(c=>c.alive).sort((a,b)=>distance3(s.player,a)-distance3(s.player,b));
+ const core=remaining[0];return{point:core||SKY_EXIT,label:core?'ERASURE UPLINK '+String(Number(core.id.split('-').at(-1))+1).padStart(2,'0'):'ECHO / RETURN SIGNAL'};
 }
 export function advance(s,seconds,input={}){
  const dt=clamp(Number(seconds)||0,0,.05);s.events=[];if(s.dead||s.finished)return s.events;s.time+=dt;s.chapterTime+=dt;const p=s.player;for(const unit of[p,...s.enemies])animationTick(unit,dt);s.shake=Math.max(0,s.shake-dt);for(const key of['attack','dash','pulse','invuln','action'])p[key]=Math.max(0,p[key]-dt);s.comboTime=Math.max(0,s.comboTime-dt);
@@ -211,9 +224,9 @@ export function advance(s,seconds,input={}){
  else if(s.chapter===5){jetTick(s,p,dt,input);for(const e of s.enemies)jetTick(s,e,dt);boltsTick(s,dt)}
  else if(s.chapter===2){tankTick(s,p,dt,input);for(const e of s.enemies)tankTick(s,e,dt);shellsTick(s,dt)}
  else{p.energy=clamp(p.energy+dt*10,0,100);let x=input.x||0,z=input.z||0,n=Math.hypot(x,z);p.moving=n>.08;if(p.dashTime>0){p.dashTime-=dt;move(s,p,p.dashX*dt*23,p.dashZ*dt*23)}else if(p.moving){x/=Math.max(1,n);z/=Math.max(1,n);if(!p.pending)p.yaw=Math.atan2(x,z);move(s,p,x*dt*(p.crouching?3:7),z*dt*(p.crouching?3:7))}if(isCity(s))cityTick(s,dt);else for(const e of s.enemies)if(e.alive)guardTick(s,e,dt);for(const orb of s.pickups){orb.age+=dt;if(dist(orb,p)<2){p.hp=clamp(p.hp+9,0,100);p.energy=clamp(p.energy+18,0,100);orb.gone=true;emit(s,'pickup',{x:orb.x,z:orb.z})}}s.pickups=s.pickups.filter(o=>!o.gone)}
- if(s.dead)return s.events;pendingTick(s,p);if(input.attack)act(s,'attack');if(input.dash)act(s,'dash');if(input.pulse)act(s,'pulse');if(input.interact)act(s,'interact');discsTick(s,dt);if(s.dead)return s.events;
+ if(s.dead)return s.events;pendingTick(s,p);if(s.player!==p||s.finished)return s.events;if(input.attack)act(s,'attack');if(input.dash)act(s,'dash');if(input.pulse)act(s,'pulse');if(input.interact)act(s,'interact');discsTick(s,dt);if(s.dead)return s.events;
  if(s.chapter===3){if(s.archiveRead&&dist(p,REFUGE_EXIT)<3)enterChapter(s,4);return s.events}
- if(isCity(s)){if(s.chapter===4&&s.relayHacked&&dist(p,SKYPORT)<5){if(s.mode==='story')enterChapter(s,5);else finish(s)}return s.events}
+ if(isCity(s))return s.events;
  if(s.chapter===5){if(s.cores.every(e=>!e.alive)&&!s.gate){s.gate=true;emit(s,'gate');if(s.mode!=='story')finish(s)}if(s.mode==='story'&&s.gate&&distance3(p,SKY_EXIT)<17)finish(s);return s.events}
  if(s.enemies.every(e=>!e.alive)&&!s.gate){if(!s.chapter&&s.wave<3){s.waveDelay+=dt;if(s.waveDelay>1.6){s.waveDelay=0;spawnWave(s)}}else{s.gate=true;emit(s,'gate');if(s.mode!=='story')finish(s)}}
  if(s.mode==='story'&&s.gate&&dist(p,gateOf(s))<(isVehicle(s)?6:3))enterChapter(s,s.chapter+1);return s.events;

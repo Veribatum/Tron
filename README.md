@@ -2,17 +2,17 @@
 
 An independent, unofficial TRON-inspired browser game. Third-person disc combat, light cycles, light tanks, a city infiltration and controllable light jets. Buildless WebGL with local assets and phone/desktop controls.
 
-## The Last Free Address · 0.4
+## The Last Free Address · 0.5
 
 You are a surviving program from the old Grid. The Warden has scheduled Argon’s unregistered identities for erasure. ECHO guides you toward Flynn’s unlisted refuge; his stored recording points toward a root key in the city’s civic relay.
 
 The chapter now continues through the Archive, Perimeter, Outlands, refuge, Argon district and aerial memory lattice. Short in-engine camera scenes explain each transition. Pause → Story so far provides the current reason and objective; scenes can be skipped or replayed. Combat tricks are left for players to discover.
 
-The refuge is a midpoint. Recovering the civic key opens a light-jet cradle at the skyport. The aerial mission has three erasure uplinks, defending interceptors, altitude, banked steering, boost, brakes and energy cannons. After the array is severed, a return flight leads to a resolved ending and a peaceful district you can explore.
+The refuge is a midpoint. Leave the refuge through its marked service door. Recovering the civic key reveals the Warden’s erasure list and opens a light-jet cradle at the skyport; approach it and choose BOARD. The aerial mission has three erasure uplinks, defending interceptors, altitude, banked steering, boost, brakes and energy cannons. A flight compass, climb/dive cue, radar marker and world beacon track a remaining uplink even after it passes behind you. After the array is severed, a return flight leads to a resolved ending and a peaceful district you can explore.
 
 Argon has connected avenues and service alleys, matching building collisions, moving residents, Mara, patrol routes, line-of-sight detection, crouching, cover and a recognizer searchlight. Fighting remains possible; breaking contact lets patrols return to their routes. Recognizers are security scenery; the jet is the controllable aircraft.
 
-Tanks now have a visible projected aiming reticle, target lock, cover obstruction, reload and hit feedback. Dragging keeps manual aim active; tapping an enemy can select a lock. Cannon rays and projectiles use the same terrain and actor dimensions.
+Tanks have a projected aiming reticle with range, target lock, cover obstruction, reload and hit feedback, plus cannon flash and drifting muzzle smoke. Dragging preserves manual turret aim while steering; AIM switches back to automatic targeting. Tapping an enemy can select a lock. Reticle rays and moving shells use one first-hit trace for terrain, armor and arena edges, including actor hits immediately in front of cover.
 
 ## Controls
 
@@ -21,7 +21,8 @@ Tanks now have a visible projected aiming reticle, target lock, cover obstructio
 | Move / drive | WASD / arrows | Left stick |
 | Look / tank aim | Drag the world | Drag the world |
 | Disc / strike / cannon | Click / Space | Main action |
-| Access / talk nearby | E / main action | ACCESS / TALK |
+| Access / talk / board nearby | E / main action | ACCESS / TALK / BOARD |
+| Tank aim mode | AIM button | AIM button |
 | Dodge / vehicle boost | Shift | DODGE / BOOST |
 | Pulse / tank shield | Q | PULSE / SHIELD |
 | City crouch | C | CROUCH / STAND |
@@ -45,7 +46,7 @@ npm test
 npm run check
 ```
 
-Engine tests cover the campaign handoffs, old saves, city routes and sight, crouching, tank aiming/cover, three-dimensional flight/weapon hits, return flight and epilogue, alongside earlier combat and animation regressions. GitHub Actions also renders real desktop/phone play, story scenes, the refuge-to-city continuation, jet combat and the epilogue. Screenshots are retained as `gridrunner-browser-proof`.
+Engine tests cover the campaign handoffs, old saves, city routes and sight, crouching, tank aiming/cover, three-dimensional flight/weapon hits, return flight and epilogue, alongside earlier combat and animation regressions. GitHub Actions also renders real desktop/phone play, story scenes, the refuge-to-city continuation, actual movement through Argon to recover the key and board the jet, flight direction cues, jet combat and the epilogue. Screenshots are retained as `gridrunner-browser-proof`.
 
 Publish GitHub Pages from **main / (root)**. `.nojekyll` and relative paths support the repository subpath.
 
