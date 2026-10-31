@@ -1,5 +1,5 @@
 {
-  "name": "tron-gridrunner", "version": "0.2.0", "private": true, "type": "module",
+  "name": "tron-gridrunner", "version": "0.3.0", "private": true, "type": "module",
   "scripts": {"dev":"node scripts/serve.mjs", "test":"node --test tests/*.test.mjs", "check":"node scripts/check.mjs"},
   "engines":{"node":">=22"}
 }

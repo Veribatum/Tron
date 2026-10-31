@@ -2,9 +2,11 @@
 
 An unofficial TRON-inspired browser game: third-person disc combat, light-cycle pursuit, light tanks, and a story beginning with a survivor of the old Grid. Buildless WebGL; local assets; phone and desktop controls.
 
-## Chapter One · 0.2
+## Chapter One · 0.3
 
 Escape the Archive, cross the Perimeter by light cycle, take an armored route through the Outlands, and investigate an unlisted refuge. A discoverable personal archive points toward Flynn. The recording is original text written for this fan game.
+
+The motion update adds separate throw/catch, three strike combos, dodge, pulse, hit and derez poses. Shared animation timing controls projectile release and melee contact. Feet use two-link IK, rider hands stay on the grips under lean and braking, tank treads travel with each side, and paused animations freeze. Footstep sounds follow the contact phase.
 
 Three arenas let you replay disc, cycle or tank combat directly. Arena practice preserves the campaign checkpoint. The story now introduces the situation without explaining combat tricks; controls are available from Pause or the title screen.
 
@@ -39,7 +41,9 @@ npm test
 npm run check
 ```
 
-GitHub Actions runs engine tests, source checks, and real Chromium desktop/phone checks. Browser coverage includes actual disc damage, portrait/landscape touch controls, appearance selection, cycle steering/boost/braking, tank drive/cannon/shield, legacy checkpoint resume, and discovering the archive through normal movement and interaction. Screenshots are retained as `gridrunner-browser-proof`.
+GitHub Actions runs engine tests, source checks, and real Chromium desktop/phone checks. The tests also verify foot clearance, rider grips, frame-rate independent wheel/tread travel, canceled strikes, and pause. Browser artifacts include a rendered pose sheet and short animation video from the actual game rigs.
+
+Browser coverage includes actual disc damage, portrait/landscape touch controls, appearance selection, cycle steering/boost/braking, tank drive/cannon/shield, legacy checkpoint resume, and discovering the archive through normal movement and interaction. Screenshots are retained as `gridrunner-browser-proof`.
 
 ## GitHub Pages
 

@@ -1,3 +1,4 @@
+import {CLIPS} from './motion.js?v=3';
 export const VERSION=1;
 export const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
@@ -29,6 +30,20 @@ export function enterChapter(s,n){
  if(n>0&&s.mode==='story'){s.profile.checkpoint=n;s.profile.checkpointScore=s.score;emit(s,'checkpoint',{chapter:n})}
 }
 const emit=(s,kind,data={})=>s.events.push({kind,...data});
+function playClip(a,clip,age=0){a.anim=clip;a.animAge=age;a.animId=(a.animId||0)+1}
+function animationTick(a,dt){a.animAge=(a.animAge||0)+dt;a.hitAge=(a.hitAge??99)+dt;a.catchAge=(a.catchAge??99)+dt;if(a.anim&&a.animAge>CLIPS[a.anim]?.duration)a.anim=''}
+function pendingTick(s,a){
+ const pending=a.pending;if(!pending||!a.alive||a.animAge<pending.impact)return;a.pending=null;
+ if(pending.kind==='throw'){
+  const target=s.enemies.find(e=>e.id===pending.target&&e.alive),yaw=target?Math.atan2(target.x-a.x,target.z-a.z):pending.yaw,v=forward(yaw),side={x:Math.cos(yaw),z:-Math.sin(yaw)},muzzle=CLIPS.throw.muzzle;
+  s.discs.push({id:'disc-'+s.serial++,owner:a.id,x:a.x+v.x*muzzle[2]+side.x*muzzle[0],z:a.z+v.z*muzzle[2]+side.z*muzzle[0],height:s.chapter===1?1.05:muzzle[1],dx:v.x,dz:v.z,age:0,returning:false,bounces:0,hit:[],damage:s.chapter===1?28:32,speed:s.chapter===1?65:34});emit(s,'throw',{owner:a.id,x:a.x,z:a.z});
+ }else if(pending.kind==='melee'){
+  const target=s.enemies.find(e=>e.id===pending.target&&e.alive);if(target&&dist(a,target)<3.5&&clearLine(s,a,target)){hurt(s,target,22+pending.combo*6,true);target.stagger=.5}emit(s,'slash',{x:a.x,z:a.z,yaw:a.yaw,combo:pending.combo});
+ }else if(pending.kind==='pulse'){
+  for(const e of s.enemies)if(e.alive&&dist(a,e)<9&&clearLine(s,a,e)){hurt(s,e,25,true);e.stagger=e.type==='sentinel'?.8:2.5}emit(s,'pulse',{x:a.x,z:a.z});
+ }else if(pending.kind==='archive'&&canAccessArchive(s)){s.profile.flynnFound=true;finish(s)}
+}
+
 export function walkable(s,x,z,r=.5){const b=boundsOf(s);if(Math.abs(x)>b.x-r||Math.abs(z)>b.z-r)return false;return !coverOf(s).some(o=>Math.abs(x-o.x)<o.w+r&&Math.abs(z-o.z)<o.d+r)}
 export function clearLine(s,a,b,r=.3){const n=Math.ceil(dist(a,b)/.45);for(let i=1;i<n;i++){const t=i/n;if(!walkable(s,a.x+(b.x-a.x)*t,a.z+(b.z-a.z)*t,r))return false}return true}
 export function move(s,a,dx,dz){if(walkable(s,a.x+dx,a.z))a.x+=dx;if(walkable(s,a.x,a.z+dz))a.z+=dz}
@@ -41,7 +56,7 @@ export function targetOf(s){const p=s.player;return s.enemies.filter(e=>e.alive&
 export function canAccessArchive(s){return s.chapter===3&&dist(s.player,ARCHIVE)<3.2}
 export function act(s,action){
  if(s.dead||s.finished)return false;const p=s.player,target=targetOf(s);
- if(action==='interact'&&canAccessArchive(s)){s.profile.flynnFound=true;finish(s);return true}
+ if(action==='interact'&&canAccessArchive(s)&&!p.pending){playClip(p,'interact');p.pending={kind:'archive',impact:CLIPS.interact.impact};return true}
  if(s.chapter===3)return false;
  if(s.chapter===2){
   if(action==='attack'&&p.attack<=0){p.attack=1.05;p.action=.35;fireShell(s,p,p.turretYaw,48);return true}
@@ -49,27 +64,28 @@ export function act(s,action){
   return false;
  }
  if(action==='attack'){
-  if(p.attack>0||(!target||s.chapter||dist(p,target)>=3.2)&&s.discs.some(d=>d.owner==='player'))return false;p.attack=s.chapter?.6:.58;p.action=.42;
-  if(!s.chapter&&target&&dist(p,target)<3.2){s.combo=s.comboTime>0?s.combo%3+1:1;s.comboTime=1.8;p.yaw=Math.atan2(target.x-p.x,target.z-p.z);hurt(s,target,22+s.combo*6,true);target.stagger=.5;emit(s,'slash',{x:p.x,z:p.z,yaw:p.yaw,combo:s.combo});}
-  else{let yaw=p.yaw;if(target){yaw=Math.atan2(target.x-p.x,target.z-p.z);if(!s.chapter)p.yaw=yaw}s.discs.push({id:'disc-'+s.serial++,owner:'player',x:p.x,z:p.z,dx:Math.sin(yaw),dz:Math.cos(yaw),age:0,returning:false,bounces:0,hit:[],damage:s.chapter?28:32,speed:s.chapter?65:34});emit(s,'throw',{owner:'player',x:p.x,z:p.z})}return true;
+  if(p.attack>0||p.pending||(!target||s.chapter||dist(p,target)>=3.2)&&s.discs.some(d=>d.owner==='player'))return false;
+  if(!s.chapter&&target&&dist(p,target)<3.2){s.combo=s.comboTime>0?s.combo%3+1:1;s.comboTime=1.8;p.yaw=Math.atan2(target.x-p.x,target.z-p.z);const clip='slash'+s.combo;playClip(p,clip);p.attack=CLIPS[clip].duration;p.pending={kind:'melee',target:target.id,combo:s.combo,impact:CLIPS[clip].impact};}
+  else{const yaw=target?Math.atan2(target.x-p.x,target.z-p.z):p.yaw;if(!s.chapter)p.yaw=yaw;playClip(p,'throw');p.attack=.64;p.pending={kind:'throw',target:target?.id,yaw,impact:CLIPS.throw.impact};}return true;
  }
- if(action==='dash'&&!s.chapter&&p.dash<=0&&p.energy>=23){p.energy-=23;p.dash=1.8;p.invuln=.4;p.dashTime=.23;const d=forward(p.yaw);p.dashX=d.x;p.dashZ=d.z;emit(s,'dash',{x:p.x,z:p.z});return true}
- if(action==='pulse'&&!s.chapter&&p.pulse<=0&&p.energy>=40){p.energy-=40;p.pulse=9;p.action=.6;for(const e of s.enemies)if(e.alive&&dist(p,e)<9&&clearLine(s,p,e)){hurt(s,e,25,true);e.stagger=e.type==='sentinel'?.8:2.5}emit(s,'pulse',{x:p.x,z:p.z});return true}
+ if(action==='dash'&&!s.chapter&&p.dash<=0&&p.energy>=23){p.energy-=23;p.dash=1.8;p.invuln=.4;p.dashTime=.23;p.pending=null;p.attack=Math.min(p.attack,.2);playClip(p,'dodge');const d=forward(p.yaw);p.dashX=d.x;p.dashZ=d.z;emit(s,'dash',{x:p.x,z:p.z});return true}
+ if(action==='pulse'&&!s.chapter&&!p.pending&&p.pulse<=0&&p.energy>=40){p.energy-=40;p.pulse=9;playClip(p,'pulse');p.pending={kind:'pulse',impact:CLIPS.pulse.impact};return true}
+
  return false;
 }
 function hurt(s,a,n,playerHit=false){
- if(!a.alive||a.id==='player'&&a.invuln>0)return false;if(a.id==='player'&&a.shield>0)n*=.2;a.hp=Math.max(0,a.hp-n);if(a.id==='player'){a.invuln=.45;s.shake=.3;emit(s,'hurt',{x:a.x,z:a.z,amount:n})}else{a.action=.2;emit(s,'hit',{x:a.x,z:a.z,amount:n});if(playerHit){s.score+=Math.round(n);s.player.energy=clamp(s.player.energy+2,0,100)}}
- if(a.hp<=0){a.alive=false;emit(s,'derez',{x:a.x,z:a.z,bike:s.chapter===1,player:a.id==='player'});if(a.id==='player'){s.dead=true;emit(s,'defeat')}else{s.kills++;s.score+=s.chapter?350:a.type==='sentinel'?400:140;if(!s.chapter)s.pickups.push({id:'energy-'+s.serial++,x:a.x,z:a.z,age:0});}}
+ if(!a.alive||a.id==='player'&&a.invuln>0)return false;if(a.id==='player'&&a.shield>0)n*=.2;a.hp=Math.max(0,a.hp-n);a.hitAge=0;if(a.id==='player'){a.invuln=.45;s.shake=.3;emit(s,'hurt',{x:a.x,z:a.z,amount:n})}else{a.action=.2;a.windup=0;a.attack=Math.max(a.attack||0,.65);emit(s,'hit',{x:a.x,z:a.z,amount:n});if(playerHit){s.score+=Math.round(n);s.player.energy=clamp(s.player.energy+2,0,100)}}
+ if(a.hp<=0){a.alive=false;a.pending=null;playClip(a,'derez');emit(s,'derez',{x:a.x,z:a.z,bike:s.chapter===1,player:a.id==='player'});if(a.id==='player'){s.dead=true;emit(s,'defeat')}else{s.kills++;s.score+=s.chapter?350:a.type==='sentinel'?400:140;if(!s.chapter)s.pickups.push({id:'energy-'+s.serial++,x:a.x,z:a.z,age:0});}}
  return true;
 }
-function discsTick(s,dt){for(const d of s.discs){d.age+=dt;const from={x:d.x,z:d.z};if(d.owner==='player'&&(d.age>.67||d.returning)){d.returning=true;const n=dist(d,s.player)||1;d.dx=(s.player.x-d.x)/n;d.dz=(s.player.z-d.z)/n;if(n<1.2){d.gone=true;emit(s,'catch',{x:s.player.x,z:s.player.z});continue}}
+function discsTick(s,dt){for(const d of s.discs){d.age+=dt;const from={x:d.x,z:d.z};if(d.owner==='player'&&(d.age>.67||d.returning)){d.returning=true;const n=dist(d,s.player)||1;d.dx=(s.player.x-d.x)/n;d.dz=(s.player.z-d.z)/n;if(n<.75){d.gone=true;s.player.catchAge=0;emit(s,'catch',{x:s.player.x,z:s.player.z});continue}}
   const nx=d.x+d.dx*d.speed*dt,nz=d.z+d.dz*d.speed*dt;if(!walkable(s,nx,nz,.15)){if(d.owner!=='player'){d.gone=true;continue}if(d.returning){d.x=nx;d.z=nz}else{if(!walkable(s,nx,d.z,.15))d.dx=-d.dx;else d.dz=-d.dz;d.bounces++;d.returning=d.bounces>1;emit(s,'ricochet',{x:d.x,z:d.z})}}else{d.x=nx;d.z=nz}
   const victims=d.owner==='player'?s.enemies:[s.player];for(const a of victims)if(a.alive&&!d.hit.includes(a.id)&&pointSegment(a,from,d)<(s.chapter?1.4:.95)){if(hurt(s,a,d.damage,d.owner==='player')){d.hit.push(a.id);if(d.owner!=='player')d.gone=true;else if(!s.chapter)a.stagger=.4}}
   if(d.age>2.8)d.gone=true;
  }s.discs=s.discs.filter(d=>!d.gone)}
 function guardTick(s,e,dt){
  e.age+=dt;e.action=Math.max(0,e.action-dt);e.stagger=Math.max(0,e.stagger-dt);if(e.stagger>0)return;const p=s.player,d=dist(e,p);e.yaw=Math.atan2(p.x-e.x,p.z-e.z);
- if(e.windup>0){e.windup-=dt;if(e.windup<=0){if(e.type==='disc'){const v=forward(e.yaw);s.discs.push({id:'disc-'+s.serial++,owner:e.id,x:e.x,z:e.z,dx:v.x,dz:v.z,age:0,hit:[],damage:15,speed:20});emit(s,'throw',{owner:e.id,x:e.x,z:e.z})}else if(d<3.4&&clearLine(s,e,p)){hurt(s,p,e.type==='sentinel'?26:18)}e.action=.4;e.attack=e.type==='sentinel'?1.7:2;emit(s,'enemyStrike',{x:e.x,z:e.z})}return}
+ if(e.windup>0){e.windup-=dt;if(e.windup<=0){const clip=e.type==='disc'?'throw':e.type==='sentinel'?'slash3':'slash1';playClip(e,clip,CLIPS[clip].impact);if(e.type==='disc'){const v=forward(e.yaw);s.discs.push({id:'disc-'+s.serial++,owner:e.id,x:e.x,z:e.z,dx:v.x,dz:v.z,age:0,hit:[],damage:15,speed:20});emit(s,'throw',{owner:e.id,x:e.x,z:e.z})}else if(d<3.4&&clearLine(s,e,p)){hurt(s,p,e.type==='sentinel'?26:18)}e.action=.4;e.attack=e.type==='sentinel'?1.7:2;emit(s,'enemyStrike',{x:e.x,z:e.z})}return}
  const reach=e.type==='disc'?14:2.5;if(d>reach||!clearLine(s,e,p)){
   e.pathTime-=dt;if(e.pathTime<=0||!e.path.length){e.path=routeTo(s,e,p);e.pathTime=.65}
   const goal=e.path[0];if(goal){const n=dist(e,goal)||1,step=Math.min(n,dt*(e.type==='sentinel'?3.2:4.2));move(s,e,(goal.x-e.x)/n*step,(goal.z-e.z)/n*step);if(n<.5)e.path.shift()}
@@ -112,12 +128,12 @@ function shellsTick(s,dt){
  }s.shells=s.shells.filter(shell=>!shell.gone);
 }
 export function advance(s,seconds,input={}){
- const dt=clamp(Number(seconds)||0,0,.05);s.events=[];if(s.dead||s.finished)return s.events;s.time+=dt;s.chapterTime+=dt;const p=s.player;s.shake=Math.max(0,s.shake-dt);for(const key of['attack','dash','pulse','invuln','action'])p[key]=Math.max(0,p[key]-dt);s.comboTime=Math.max(0,s.comboTime-dt);
+ const dt=clamp(Number(seconds)||0,0,.05);s.events=[];if(s.dead||s.finished)return s.events;s.time+=dt;s.chapterTime+=dt;const p=s.player;for(const unit of[p,...s.enemies])animationTick(unit,dt);s.shake=Math.max(0,s.shake-dt);for(const key of['attack','dash','pulse','invuln','action'])p[key]=Math.max(0,p[key]-dt);s.comboTime=Math.max(0,s.comboTime-dt);
  p.shield=Math.max(0,(p.shield||0)-dt);
  if(s.chapter===1){bikeTick(s,p,dt,input);for(const e of s.enemies)bikeTick(s,e,dt,input);s.trails=s.trails.filter(t=>s.time-t.born<16).slice(-1600)}
  else if(s.chapter===2){tankTick(s,p,dt,input);for(const e of s.enemies)tankTick(s,e,dt);shellsTick(s,dt)}
- else{p.energy=clamp(p.energy+dt*10,0,100);let x=input.x||0,z=input.z||0,n=Math.hypot(x,z);p.moving=n>.08;if(p.dashTime>0){p.dashTime-=dt;move(s,p,p.dashX*dt*23,p.dashZ*dt*23)}else if(p.moving){x/=Math.max(1,n);z/=Math.max(1,n);p.yaw=Math.atan2(x,z);move(s,p,x*dt*7,z*dt*7)}for(const e of s.enemies)if(e.alive)guardTick(s,e,dt);for(const orb of s.pickups){orb.age+=dt;if(dist(orb,p)<2){p.hp=clamp(p.hp+9,0,100);p.energy=clamp(p.energy+18,0,100);orb.gone=true;emit(s,'pickup',{x:orb.x,z:orb.z})}}s.pickups=s.pickups.filter(o=>!o.gone)}
- if(s.dead)return s.events;if(input.attack)act(s,'attack');if(input.dash)act(s,'dash');if(input.pulse)act(s,'pulse');if(input.interact)act(s,'interact');discsTick(s,dt);if(s.dead)return s.events;
+ else{p.energy=clamp(p.energy+dt*10,0,100);let x=input.x||0,z=input.z||0,n=Math.hypot(x,z);p.moving=n>.08;if(p.dashTime>0){p.dashTime-=dt;move(s,p,p.dashX*dt*23,p.dashZ*dt*23)}else if(p.moving){x/=Math.max(1,n);z/=Math.max(1,n);if(!p.pending)p.yaw=Math.atan2(x,z);move(s,p,x*dt*7,z*dt*7)}for(const e of s.enemies)if(e.alive)guardTick(s,e,dt);for(const orb of s.pickups){orb.age+=dt;if(dist(orb,p)<2){p.hp=clamp(p.hp+9,0,100);p.energy=clamp(p.energy+18,0,100);orb.gone=true;emit(s,'pickup',{x:orb.x,z:orb.z})}}s.pickups=s.pickups.filter(o=>!o.gone)}
+ if(s.dead)return s.events;pendingTick(s,p);if(input.attack)act(s,'attack');if(input.dash)act(s,'dash');if(input.pulse)act(s,'pulse');if(input.interact)act(s,'interact');discsTick(s,dt);if(s.dead)return s.events;
  if(s.chapter===3)return s.events;
  if(s.enemies.every(e=>!e.alive)&&!s.gate){if(!s.chapter&&s.wave<3){s.waveDelay+=dt;if(s.waveDelay>1.6){s.waveDelay=0;spawnWave(s)}}else{s.gate=true;emit(s,'gate');if(s.mode!=='story')finish(s)}}
  if(s.mode==='story'&&s.gate&&dist(p,gateOf(s))<(isVehicle(s)?6:3))enterChapter(s,s.chapter+1);return s.events;
