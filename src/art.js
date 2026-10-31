@@ -1,5 +1,5 @@
 import * as T from '../vendor/three.module.js';
-import {CLIPS,gaitFrequency,samplePose,legAngles} from './motion.js?v=3';
+import {CLIPS,gaitFrequency,samplePose,legAngles} from './motion.js?v=4';
 export const COLORS={cyan:0x67e9ff,white:0xe6f7ff,violet:0xc39cff,orange:0xff873c,red:0xff424d};
 const metal=(color=0x080c12)=>new T.MeshStandardMaterial({color,metalness:.75,roughness:.27});
 const light=color=>new T.MeshBasicMaterial({color});
@@ -82,7 +82,7 @@ function armIK(g,side,target,weight=1){
 export function animateProgram(g,dt,state={}){
  const r=g.userData.rig,m=g.userData.motion??={speed:0,phase:0,time:0,contacts:{L:false,R:false},ready:false};dt=cap(dt,0,.1);const amount=1-Math.exp(-dt*16),wanted=state.speed??(state.moving?7:0);m.speed=mix(m.speed,wanted,amount);m.time+=dt;m.phase=(m.phase+gaitFrequency(m.speed)*dt)%1;g.userData.phase=m.phase*Math.PI*2;
  let clip=state.clip||'',age=state.age||0;if(!clip&&state.action>0){clip='throw';age=.42-state.action}
- const pose=samplePose({phase:m.phase,speed:m.speed,moveX:state.moveX||0,moveZ:state.moveZ??1,time:m.time,turn:state.turn||0,clip,age,windup:state.windupRatio||0,heavy:state.heavy,hitAge:state.hitAge,catchAge:state.catchAge});
+ const pose=samplePose({phase:m.phase,speed:m.speed,moveX:state.moveX||0,moveZ:state.moveZ??1,time:m.time,turn:state.turn||0,clip,age,windup:state.windupRatio||0,heavy:state.heavy,hitAge:state.hitAge,catchAge:state.catchAge,crouching:state.crouching});
  if(g.userData.rider){pose.hipY=.70;pose.hipZ=0;pose.hips=[0,0,-(state.bank||0)*.12];pose.torso=[.98+(state.boosting?.09:0)-(state.braking?.08:0),0,-(state.bank||0)*.15];pose.head=[-.55,cap(state.turn||0,-1,1)*.12,0];pose.footL=[-.392,.02,-.34];pose.footR=[.392,.02,-.34];pose.fingersL=pose.fingersR=.95;pose.toeL=pose.toeR=.1;if(clip==='throw'||(state.catchAge??99)<.3)pose.armR[0]-=pose.torso[0];}
  const weight=m.ready?1-Math.exp(-dt*28):1;m.ready=true;
  r.hips.position.lerp(new T.Vector3(pose.hipX,pose.hipY,pose.hipZ),weight);
@@ -139,4 +139,16 @@ export function animateTank(g,dt,state={}){
  for(const wheel of m.tracks)wheel.rotation.x+=dt*speed/.36;m.turret.rotation.y=(state.turretYaw||0)-(state.yaw||0);
  const elapsed=Math.max(0,.35-(state.action||0)),recoil=state.action>0?(1-Math.exp(-elapsed*100))*Math.exp(-elapsed*13):0;m.barrel.position.z=.65-recoil*.36;m.turret.rotation.x=-recoil*.025;m.flash.visible=(state.action||0)>.26;m.flash.material.opacity=cap((state.action||0)/.35,0,1);m.flash.scale.setScalar(.6+recoil*.8);
  m.shield.visible=state.shield>0;const shieldFade=Math.min(1,(state.shield||0)*2);m.shield.material.opacity=.10*shieldFade;m.shield.scale.set(1,.65,1).multiplyScalar(1+Math.sin((state.shield||0)*16)*.012);g.rotation.x=mix(g.rotation.x,cap(-(speed-(m.lastSpeed??speed))*.018,-.025,.025),1-Math.exp(-dt*8));m.lastSpeed=speed;
+}
+
+export function jetModel(color=COLORS.cyan,options={}){
+ const g=new T.Group(),black=metal(0x09131c),armor=metal(0x263d4a),glow=light(color),wings=[];
+ const body=mesh(g,surface([[-2.5,.08,.06],[-1.8,.42,.24],[-.2,.54,.32],[1.6,.26,.21],[2.6,.025,.035]],24),black);body.rotation.x=Math.PI/2;
+ for(const side of[-1,1]){const wing=new T.Group();wing.position.x=side*.38;g.add(wing);const shape=new T.Shape();shape.moveTo(0,1);shape.lineTo(side*3.55,-1.2);shape.lineTo(side*3.0,-2.0);shape.lineTo(0,-1.1);shape.closePath();const panel=mesh(wing,new T.ExtrudeGeometry(shape,{depth:.09,bevelEnabled:true,bevelSize:.035,bevelThickness:.025,bevelSegments:1,steps:1}),armor);panel.rotation.x=Math.PI/2;
+  circuit(wing,glow,[[0,.06,1],[side*3.55,.06,-1.2],[side*3,.06,-2],[0,.06,-1.1]],.026);const cannon=box(g,black,.15,.16,1.3,side*.92,-.04,.85);box(g,glow,.09,.09,.035,side*.92,-.04,1.52);const tail=box(g,armor,.10,.75,.8,side*.7,.4,-1.5);tail.rotation.z=-side*.3;circuit(g,glow,[[side*.73,.2,-1.8],[side*.9,.75,-1.8],[side*.9,.75,-1.1]],.018);wings.push(wing)}
+ const canopy=oval(g,new T.MeshPhysicalMaterial({color:0x0a2e40,metalness:.7,roughness:.17,clearcoat:1,transparent:true,opacity:.8}),.48,0,.28,.25,.85,.62,1.75);const pilot=programModel(color,{...options,rider:true});pilot.scale.setScalar(.38);pilot.position.set(0,.12,-.2);g.add(pilot);
+ const engines=[];for(const side of[-1,1]){const ring=mesh(g,new T.TorusGeometry(.17,.03,6,24),glow,side*.30,.02,-2.03);const flame=mesh(g,new T.ConeGeometry(.13,.8,10),new T.MeshBasicMaterial({color,transparent:true,opacity:.7,depthWrite:false,blending:T.AdditiveBlending}),side*.30,.02,-2.4);flame.rotation.x=-Math.PI/2;engines.push(flame)}g.userData={wings,pilot,engines,bank:0};return g;
+}
+export function animateJet(g,dt,state={}){
+ const m=g.userData,blend=1-Math.exp(-dt*7);m.bank=mix(m.bank,cap(-(state.turn||0)*.4,-.7,.7),blend);g.rotation.z=m.bank;g.rotation.x=-(state.pitch||0);for(let i=0;i<m.wings.length;i++)m.wings[i].rotation.z=mix(m.wings[i].rotation.z,(i?1:-1)*(state.braking?.27:state.boosting?-.08:0),blend);for(const flame of m.engines){flame.scale.y=mix(flame.scale.y,state.boosting?2.2:.8,blend);flame.material.opacity=state.boosting?.85:.5}animateProgram(m.pilot,dt,{speed:0,boosting:state.boosting,bank:m.bank});
 }

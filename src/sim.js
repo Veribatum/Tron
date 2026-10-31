@@ -1,4 +1,6 @@
-import {CLIPS} from './motion.js?v=3';
+import {CLIPS} from './motion.js?v=4';
+import {CITY_BOUNDS,SKY_BOUNDS,CITY_COVER,CITY_ENTRY,CITY_RELAY,SKYPORT,REFUGE_EXIT,PATROL_ROUTES,CIVIC_ROUTES,SKY_TOWERS,SKY_CORES,SKY_EXIT} from './world.js?v=4';
+export {CITY_BOUNDS,SKY_BOUNDS,CITY_COVER,CITY_RELAY,SKYPORT,REFUGE_EXIT,SKY_TOWERS,SKY_EXIT};
 export const VERSION=1;
 export const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
@@ -10,24 +12,27 @@ export const TANK_BOUNDS={x:64,z:83},REFUGE_BOUNDS={x:15,z:22};
 export const TANK_COVER=[{x:-20,z:22,w:7,d:10},{x:21,z:0,w:7,d:12},{x:-21,z:-29,w:9,d:8},{x:26,z:-46,w:8,d:7}];
 export const REFUGE_COVER=[{x:-9,z:-4,w:2.5,d:4},{x:9,z:-4,w:2.5,d:4},{x:0,z:-10,w:2.1,d:.8}];
 export const ARCHIVE={x:0,z:-7};
-export const isVehicle=s=>s.chapter===1||s.chapter===2;
-export const boundsOf=s=>[DISC_BOUNDS,CYCLE_BOUNDS,TANK_BOUNDS,REFUGE_BOUNDS][s.chapter];
-export const coverOf=s=>[COVER,[],TANK_COVER,REFUGE_COVER][s.chapter];
-export const gateOf=s=>({x:0,z:[-36,-57,-73,-7][s.chapter]});
+export const isCity=s=>s.chapter===4||s.chapter===6;
+export const isVehicle=s=>s.chapter===1||s.chapter===2||s.chapter===5;
+export const boundsOf=s=>[DISC_BOUNDS,CYCLE_BOUNDS,TANK_BOUNDS,REFUGE_BOUNDS,CITY_BOUNDS,SKY_BOUNDS,CITY_BOUNDS][s.chapter];
+export const coverOf=s=>[COVER,[],TANK_COVER,REFUGE_COVER,CITY_COVER,[],CITY_COVER][s.chapter];
+export const gateOf=s=>s.chapter===6?{x:-5,z:67}:s.chapter===3?(s.archiveRead?REFUGE_EXIT:ARCHIVE):isCity(s)?(s.relayHacked||s.chapter===6?SKYPORT:CITY_RELAY):s.chapter===5?SKY_EXIT:({x:0,z:[-36,-57,-73][s.chapter]});
 const palette=['cyan','white','violet'];
 export function rng(seed){let n=seed>>>0;return()=>{n+=0x6d2b79f5;let t=n;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
-export function newProfile(name='RUNNER',color='cyan'){return{name:String(name).trim().slice(0,20)||'RUNNER',color:palette.includes(color)?color:'cyan',frame:'male',helmet:true,checkpoint:0,cleared:false,bestDisc:0,bestCycle:0,bestTank:0}}
-export function validProfile(p){return!!p&&typeof p.name==='string'&&p.name.length<=20&&palette.includes(p.color)&&[0,1,2,3].includes(p.checkpoint)&&typeof p.cleared==='boolean'&&['bestDisc','bestCycle'].every(k=>Number.isFinite(p[k])&&p[k]>=0&&p[k]<1e9)&&(p.frame===undefined||['male','female'].includes(p.frame))&&(p.bestTank===undefined||Number.isFinite(p.bestTank)&&p.bestTank>=0&&p.bestTank<1e9)}
+export function newProfile(name='RUNNER',color='cyan'){return{name:String(name).trim().slice(0,20)||'RUNNER',color:palette.includes(color)?color:'cyan',frame:'male',helmet:true,checkpoint:0,cleared:false,bestDisc:0,bestCycle:0,bestTank:0,bestJet:0,bestCity:0,storyVersion:2,seenScenes:[]}}
+export function validProfile(p){return!!p&&typeof p.name==='string'&&p.name.length<=20&&palette.includes(p.color)&&[0,1,2,3,4,5,6].includes(p.checkpoint)&&typeof p.cleared==='boolean'&&['bestDisc','bestCycle'].every(k=>Number.isFinite(p[k])&&p[k]>=0&&p[k]<1e9)&&(p.frame===undefined||['male','female'].includes(p.frame))&&(p.bestTank===undefined||Number.isFinite(p.bestTank)&&p.bestTank>=0&&p.bestTank<1e9)}
 export function createRun({mode='story',profile=newProfile(),seed=7319}={}){
- const s={mode:['story','disc','cycle','tank'].includes(mode)?mode:'story',profile:{...newProfile(),...structuredClone(profile)},seed:seed>>>0,random:rng(seed),chapter:mode==='tank'?2:mode==='cycle'?1:mode==='story'?profile.checkpoint:0,time:0,score:mode==='story'&&profile.checkpoint>0&&Number.isFinite(profile.checkpointScore)?profile.checkpointScore:0,kills:0,wave:0,enemies:[],discs:[],shells:[],trails:[],pickups:[],events:[],serial:0,combo:0,comboTime:0,finished:false,dead:false,gate:false,waveDelay:0,shake:0};
+ const s={mode:['story','disc','cycle','tank','jet','city'].includes(mode)?mode:'story',profile:{...newProfile(),...structuredClone(profile)},seed:seed>>>0,random:rng(seed),chapter:mode==='jet'?5:mode==='city'?4:mode==='tank'?2:mode==='cycle'?1:mode==='story'?profile.checkpoint:0,time:0,score:mode==='story'&&profile.checkpoint>0&&Number.isFinite(profile.checkpointScore)?profile.checkpointScore:0,kills:0,wave:0,enemies:[],discs:[],shells:[],bolts:[],cores:[],citizens:[],trails:[],pickups:[],events:[],serial:0,combo:0,comboTime:0,finished:false,dead:false,gate:false,waveDelay:0,shake:0};
  enterChapter(s,s.chapter);return s;
 }
 export function enterChapter(s,n){
- s.chapter=n;s.chapterTime=0;s.enemies=[];s.discs=[];s.shells=[];s.trails=[];s.pickups=[];s.wave=0;s.gate=false;s.waveDelay=0;s.player={id:'player',x:0,z:[26,42,65,16][n],yaw:Math.PI,turretYaw:Math.PI,hp:100,energy:100,attack:0,dash:0,pulse:0,shield:0,invuln:0,stagger:0,action:0,speed:n===1?15:0,trailTime:0,trailStart:null,alive:true};
+ s.chapter=n;s.finished=false;s.dead=false;s.chapterTime=0;s.enemies=[];s.discs=[];s.shells=[];s.bolts=[];s.cores=[];s.citizens=[];s.trails=[];s.archiveRead=!!s.profile.flynnFound;s.relayHacked=isCity(s)&&!!s.profile.relayHacked;s.exposure=0;s.searchTime=0;s.cityAlarms=0;s.crouching=false;s.scanner={x:0,z:50};s.pickups=[];s.wave=0;s.gate=false;s.waveDelay=0;s.player={id:'player',x:0,z:[26,42,65,16,73,145,73][n],y:n===5?38:0,pitch:0,yaw:Math.PI,turretYaw:Math.PI,hp:100,energy:100,attack:0,dash:0,pulse:0,shield:0,invuln:0,stagger:0,action:0,speed:n===1?15:n===5?26:0,trailTime:0,trailStart:null,alive:true};
  if(n===1)for(let i=0;i<3;i++)s.enemies.push({id:'bike-'+i,type:'bike',x:(i-1)*32,z:-22-i%2*8,yaw:i%2?0:Math.PI/2,hp:70,maxHp:70,alive:true,speed:15+i,fire:4+i,turn:0,trailTime:0,trailStart:null,age:0});
  else if(n===2)for(const [i,x,z]of[[0,-35,5],[1,33,-27],[2,0,-55]])s.enemies.push({id:'tank-'+i,type:'tank',x,z,yaw:0,turretYaw:0,hp:160,maxHp:160,alive:true,speed:0,attack:2+i*.8,windup:0,action:0,path:[],pathTime:0,age:0});
+ else if(n===4||n===6)spawnCity(s);
+ else if(n===5)spawnSky(s);
  else if(n===0)spawnWave(s);
- if(n>0&&s.mode==='story'){s.profile.checkpoint=n;s.profile.checkpointScore=s.score;emit(s,'checkpoint',{chapter:n})}
+ if(n>0&&s.mode==='story'){s.profile.checkpoint=n;s.profile.checkpointScore=s.score;s.profile.storyVersion=2;s.profile.cleared=n===6;emit(s,'checkpoint',{chapter:n})}
 }
 const emit=(s,kind,data={})=>s.events.push({kind,...data});
 function playClip(a,clip,age=0){a.anim=clip;a.animAge=age;a.animId=(a.animId||0)+1}
@@ -41,7 +46,7 @@ function pendingTick(s,a){
   const target=s.enemies.find(e=>e.id===pending.target&&e.alive);if(target&&dist(a,target)<3.5&&clearLine(s,a,target)){hurt(s,target,22+pending.combo*6,true);target.stagger=.5}emit(s,'slash',{x:a.x,z:a.z,yaw:a.yaw,combo:pending.combo});
  }else if(pending.kind==='pulse'){
   for(const e of s.enemies)if(e.alive&&dist(a,e)<9&&clearLine(s,a,e)){hurt(s,e,25,true);e.stagger=e.type==='sentinel'?.8:2.5}emit(s,'pulse',{x:a.x,z:a.z});
- }else if(pending.kind==='archive'&&canAccessArchive(s)){s.profile.flynnFound=true;finish(s)}
+ }else if(pending.kind==='archive'&&canAccessArchive(s)){s.profile.flynnFound=true;s.archiveRead=true;s.gate=true;emit(s,'archive')}else if(pending.kind==='relay'&&canAccessRelay(s)){s.relayHacked=true;if(s.mode==='story')s.profile.relayHacked=true;s.score+=s.cityAlarms?300:800;if(s.mode==='story')s.profile.checkpointScore=s.score;emit(s,'relay')}else if(pending.kind==='mara'){emit(s,'mara')}
 }
 
 export function walkable(s,x,z,r=.5){const b=boundsOf(s);if(Math.abs(x)>b.x-r||Math.abs(z)>b.z-r)return false;return !coverOf(s).some(o=>Math.abs(x-o.x)<o.w+r&&Math.abs(z-o.z)<o.d+r)}
@@ -52,35 +57,40 @@ export function routeTo(s,a,b){
  const costs=nodes.map(()=>Infinity),done=new Set(),prev=[];costs[0]=0;for(let n=0;n<nodes.length;n++){let u=-1;for(let i=0;i<nodes.length;i++)if(!done.has(i)&&(u<0||costs[i]<costs[u]))u=i;if(u<0||!Number.isFinite(costs[u]))break;if(u===1){const out=[];for(let i=1;i>0;i=prev[i])out.unshift(nodes[i]);return out}done.add(u);for(let j=0;j<nodes.length;j++)if(!done.has(j)&&clearLine(s,nodes[u],nodes[j],radius)){const next=costs[u]+dist(nodes[u],nodes[j]);if(next<costs[j]){costs[j]=next;prev[j]=u}}}return[];
 }
 function spawnWave(s){s.wave++;const positions=[[-22,15],[22,14],[0,-27],[-28,-9],[28,-12]];for(let i=positions.length-1;i>0;i--){const j=Math.floor(s.random()*(i+1));[positions[i],positions[j]]=[positions[j],positions[i]]}const count=s.wave===1?2:s.wave===2?3:4;s.enemies=positions.slice(0,count).map(([x,z],i)=>({id:'guard-'+s.wave+'-'+i,type:s.wave===3&&i===3?'sentinel':i%2?'striker':'disc',x,z,yaw:0,hp:s.wave===3&&i===3?140:55+s.wave*8,maxHp:s.wave===3&&i===3?140:55+s.wave*8,alive:true,attack:1.5+i*.5,windup:0,stagger:0,action:0,path:[],pathTime:0,age:0}));emit(s,'wave',{wave:s.wave});}
-export function targetOf(s){const p=s.player;return s.enemies.filter(e=>e.alive&&dist(p,e)<(s.chapter===2?72:s.chapter===1?48:34)&&clearLine(s,p,e)).sort((a,b)=>dist(a,p)-dist(b,p))[0]||null}
-export function canAccessArchive(s){return s.chapter===3&&dist(s.player,ARCHIVE)<3.2}
+export function targetOf(s){if(s.chapter===5)return flightTarget(s);const p=s.player;return s.enemies.filter(e=>e.alive&&dist(p,e)<(s.chapter===2?72:s.chapter===1?48:34)&&clearLine(s,p,e)).sort((a,b)=>dist(a,p)-dist(b,p))[0]||null}
+export function canAccessArchive(s){return s.chapter===3&&!s.archiveRead&&dist(s.player,ARCHIVE)<3.2}
+export function canAccessRelay(s){return s.chapter===4&&!s.relayHacked&&dist(s.player,CITY_RELAY)<3.6}
+export function canTalkMara(s){return isCity(s)&&dist(s.player,{x:-5,z:67})<3.3}
 export function act(s,action){
  if(s.dead||s.finished)return false;const p=s.player,target=targetOf(s);
  if(action==='interact'&&canAccessArchive(s)&&!p.pending){playClip(p,'interact');p.pending={kind:'archive',impact:CLIPS.interact.impact};return true}
- if(s.chapter===3)return false;
+ if(action==='interact'&&canAccessRelay(s)&&!p.pending){playClip(p,'interact');p.pending={kind:'relay',impact:CLIPS.interact.impact};return true}
+ if(action==='interact'&&canTalkMara(s)&&!p.pending){playClip(p,'interact');p.pending={kind:'mara',impact:CLIPS.interact.impact};return true}
+ if(s.chapter===5){if(action==='attack'&&p.attack<=0){p.attack=.16;fireBolt(s,p,true);return true}return false}
+ if(s.chapter===3||s.chapter===6)return false;
  if(s.chapter===2){
   if(action==='attack'&&p.attack<=0){p.attack=1.05;p.action=.35;fireShell(s,p,p.turretYaw,48);return true}
   if(action==='pulse'&&p.pulse<=0&&p.energy>=35){p.energy-=35;p.pulse=9;p.shield=2.8;emit(s,'shield',{x:p.x,z:p.z});return true}
   return false;
  }
  if(action==='attack'){
-  if(p.attack>0||p.pending||(!target||s.chapter||dist(p,target)>=3.2)&&s.discs.some(d=>d.owner==='player'))return false;
-  if(!s.chapter&&target&&dist(p,target)<3.2){s.combo=s.comboTime>0?s.combo%3+1:1;s.comboTime=1.8;p.yaw=Math.atan2(target.x-p.x,target.z-p.z);const clip='slash'+s.combo;playClip(p,clip);p.attack=CLIPS[clip].duration;p.pending={kind:'melee',target:target.id,combo:s.combo,impact:CLIPS[clip].impact};}
-  else{const yaw=target?Math.atan2(target.x-p.x,target.z-p.z):p.yaw;if(!s.chapter)p.yaw=yaw;playClip(p,'throw');p.attack=.64;p.pending={kind:'throw',target:target?.id,yaw,impact:CLIPS.throw.impact};}return true;
+  if(p.attack>0||p.pending||(!target||isVehicle(s)||dist(p,target)>=3.2)&&s.discs.some(d=>d.owner==='player'))return false;
+  if(!isVehicle(s)&&target&&dist(p,target)<3.2){s.combo=s.comboTime>0?s.combo%3+1:1;s.comboTime=1.8;p.yaw=Math.atan2(target.x-p.x,target.z-p.z);const clip='slash'+s.combo;playClip(p,clip);p.attack=CLIPS[clip].duration;p.pending={kind:'melee',target:target.id,combo:s.combo,impact:CLIPS[clip].impact};}
+  else{const yaw=target?Math.atan2(target.x-p.x,target.z-p.z):p.yaw;if(!isVehicle(s))p.yaw=yaw;playClip(p,'throw');p.attack=.64;p.pending={kind:'throw',target:target?.id,yaw,impact:CLIPS.throw.impact};}return true;
  }
- if(action==='dash'&&!s.chapter&&p.dash<=0&&p.energy>=23){p.energy-=23;p.dash=1.8;p.invuln=.4;p.dashTime=.23;p.pending=null;p.attack=Math.min(p.attack,.2);playClip(p,'dodge');const d=forward(p.yaw);p.dashX=d.x;p.dashZ=d.z;emit(s,'dash',{x:p.x,z:p.z});return true}
- if(action==='pulse'&&!s.chapter&&!p.pending&&p.pulse<=0&&p.energy>=40){p.energy-=40;p.pulse=9;playClip(p,'pulse');p.pending={kind:'pulse',impact:CLIPS.pulse.impact};return true}
+ if(action==='dash'&&!isVehicle(s)&&p.dash<=0&&p.energy>=23){p.energy-=23;p.dash=1.8;p.invuln=.4;p.dashTime=.23;p.pending=null;p.attack=Math.min(p.attack,.2);playClip(p,'dodge');const d=forward(p.yaw);p.dashX=d.x;p.dashZ=d.z;emit(s,'dash',{x:p.x,z:p.z});return true}
+ if(action==='pulse'&&!isVehicle(s)&&!p.pending&&p.pulse<=0&&p.energy>=40){p.energy-=40;p.pulse=9;playClip(p,'pulse');p.pending={kind:'pulse',impact:CLIPS.pulse.impact};return true}
 
  return false;
 }
 function hurt(s,a,n,playerHit=false){
- if(!a.alive||a.id==='player'&&a.invuln>0)return false;if(a.id==='player'&&a.shield>0)n*=.2;a.hp=Math.max(0,a.hp-n);a.hitAge=0;if(a.id==='player'){a.invuln=.45;s.shake=.3;emit(s,'hurt',{x:a.x,z:a.z,amount:n})}else{a.action=.2;a.windup=0;a.attack=Math.max(a.attack||0,.65);emit(s,'hit',{x:a.x,z:a.z,amount:n});if(playerHit){s.score+=Math.round(n);s.player.energy=clamp(s.player.energy+2,0,100)}}
- if(a.hp<=0){a.alive=false;a.pending=null;playClip(a,'derez');emit(s,'derez',{x:a.x,z:a.z,bike:s.chapter===1,player:a.id==='player'});if(a.id==='player'){s.dead=true;emit(s,'defeat')}else{s.kills++;s.score+=s.chapter?350:a.type==='sentinel'?400:140;if(!s.chapter)s.pickups.push({id:'energy-'+s.serial++,x:a.x,z:a.z,age:0});}}
+ if(!a.alive||a.id==='player'&&a.invuln>0)return false;if(a.id==='player'&&a.shield>0)n*=.2;a.hp=Math.max(0,a.hp-n);a.hitAge=0;if(a.id==='player'){a.invuln=.45;s.shake=.3;emit(s,'hurt',{x:a.x,y:a.y??1,z:a.z,amount:n})}else{a.action=.2;a.windup=0;a.attack=Math.max(a.attack||0,.65);emit(s,'hit',{x:a.x,y:a.y||1,z:a.z,amount:n,byPlayer:playerHit,target:a.id});if(playerHit){s.score+=Math.round(n);s.player.energy=clamp(s.player.energy+2,0,100)}}
+ if(a.hp<=0){a.alive=false;a.pending=null;playClip(a,'derez');emit(s,'derez',{x:a.x,y:a.y??.9,z:a.z,bike:s.chapter===1,player:a.id==='player'});if(a.id==='player'){s.dead=true;emit(s,'defeat')}else{s.kills++;s.score+=isVehicle(s)?350:a.type==='sentinel'?400:140;if(!isVehicle(s))s.pickups.push({id:'energy-'+s.serial++,x:a.x,z:a.z,age:0});}}
  return true;
 }
 function discsTick(s,dt){for(const d of s.discs){d.age+=dt;const from={x:d.x,z:d.z};if(d.owner==='player'&&(d.age>.67||d.returning)){d.returning=true;const n=dist(d,s.player)||1;d.dx=(s.player.x-d.x)/n;d.dz=(s.player.z-d.z)/n;if(n<.75){d.gone=true;s.player.catchAge=0;emit(s,'catch',{x:s.player.x,z:s.player.z});continue}}
   const nx=d.x+d.dx*d.speed*dt,nz=d.z+d.dz*d.speed*dt;if(!walkable(s,nx,nz,.15)){if(d.owner!=='player'){d.gone=true;continue}if(d.returning){d.x=nx;d.z=nz}else{if(!walkable(s,nx,d.z,.15))d.dx=-d.dx;else d.dz=-d.dz;d.bounces++;d.returning=d.bounces>1;emit(s,'ricochet',{x:d.x,z:d.z})}}else{d.x=nx;d.z=nz}
-  const victims=d.owner==='player'?s.enemies:[s.player];for(const a of victims)if(a.alive&&!d.hit.includes(a.id)&&pointSegment(a,from,d)<(s.chapter?1.4:.95)){if(hurt(s,a,d.damage,d.owner==='player')){d.hit.push(a.id);if(d.owner!=='player')d.gone=true;else if(!s.chapter)a.stagger=.4}}
+  const victims=d.owner==='player'?s.enemies:[s.player];for(const a of victims)if(a.alive&&!d.hit.includes(a.id)&&pointSegment(a,from,d)<(s.chapter?1.4:.95)){if(hurt(s,a,d.damage,d.owner==='player')){d.hit.push(a.id);if(d.owner!=='player')d.gone=true;else if(!isVehicle(s))a.stagger=.4}}
   if(d.age>2.8)d.gone=true;
  }s.discs=s.discs.filter(d=>!d.gone)}
 function guardTick(s,e,dt){
@@ -104,13 +114,13 @@ function bikeTick(s,b,dt,input){
  if(!walkable(s,to.x,to.z,.9)||b.age>1.4&&trailDanger(s,from,to,b)){crash(s,b);return}b.x=to.x;b.z=to.z;
  if(!b.trailStart)b.trailStart={...from};b.trailTime+=dt;if(dist(b,b.trailStart)>1.4){s.trails.push({id:s.serial++,owner:b.id,a:b.trailStart,b:{x:b.x,z:b.z},born:s.time});b.trailStart={x:b.x,z:b.z}}
 }
-function fireShell(s,a,yaw,damage){const v=forward(yaw);s.shells.push({id:'shell-'+s.serial++,owner:a.id,x:a.x+v.x*3,z:a.z+v.z*3,dx:v.x,dz:v.z,age:0,damage});emit(s,'cannon',{x:a.x+v.x*3,z:a.z+v.z*3,owner:a.id})}
+function fireShell(s,a,yaw,damage){const v=forward(yaw);s.shells.push({id:'shell-'+s.serial++,owner:a.id,x:a.x+v.x*3.4,z:a.z+v.z*3.4,dx:v.x,dz:v.z,age:0,damage});emit(s,'cannon',{x:a.x+v.x*3.4,z:a.z+v.z*3.4,owner:a.id})}
 function tankTick(s,t,dt,input={}){
  if(!t.alive)return;t.action=Math.max(0,t.action-dt);const p=s.player;
  if(t.id==='player'){
   t.yaw-=clamp(input.steer||0,-1,1)*dt*1.05;const throttle=Number.isFinite(input.throttle)?clamp(input.throttle,-1,1):1,boost=input.boost&&t.energy>2;
   const wanted=(input.brake?0:throttle)*(boost?13:8);t.speed+=(wanted-t.speed)*Math.min(1,dt*3);t.energy=clamp(t.energy+dt*(boost?-18:9),0,100);t.boosting=boost;
-  const target=targetOf(s),aim=input.aimActive?input.aim:target?Math.atan2(target.x-t.x,target.z-t.z):Number.isFinite(input.aim)?input.aim:t.yaw;t.turretYaw+=wrap(aim-t.turretYaw)*Math.min(1,dt*5);
+  const locked=s.enemies.find(e=>e.id===p.lockTarget&&e.alive&&clearLine(s,p,e)),target=locked||s.enemies.filter(e=>e.alive&&dist(e,p)<100&&Math.abs(wrap(Math.atan2(e.x-p.x,e.z-p.z)-(input.aim??p.yaw)))<.9&&clearLine(s,p,e)).sort((a,b)=>dist(a,p)-dist(b,p))[0],aim=input.aimActive?input.aim:target?Math.atan2(target.x-t.x,target.z-t.z):Number.isFinite(input.aim)?input.aim:t.yaw;t.turretYaw+=wrap(aim-t.turretYaw)*Math.min(1,dt*5);
  }else{
   const d=dist(t,p),visible=clearLine(s,t,p);t.turretYaw+=wrap(Math.atan2(p.x-t.x,p.z-t.z)-t.turretYaw)*Math.min(1,dt*2);
   if(t.windup>0){t.windup-=dt;t.speed=0;if(t.windup<=0){fireShell(s,t,t.turretYaw,24);t.action=.35;t.attack=2.8}}else if(d<58&&visible){t.speed=0;t.attack-=dt;if(t.attack<=0)t.windup=1.25}else{
@@ -127,16 +137,94 @@ function shellsTick(s,dt){
   if(impact){shell.gone=true;emit(s,'explosion',{x:shell.x,z:shell.z})}if(shell.age>2.8)shell.gone=true;
  }s.shells=s.shells.filter(shell=>!shell.gone);
 }
+function spawnCity(s){
+ s.relayHacked=s.chapter===6||s.mode==='story'&&!!s.profile.relayHacked;
+ if(s.chapter===4)s.enemies=PATROL_ROUTES.map((route,i)=>({id:'patrol-'+i,type:i===1?'striker':'disc',x:route[0].x,z:route[0].z,yaw:Math.PI,hp:90,maxHp:90,alive:true,attack:2,windup:0,action:0,stagger:0,path:[],pathTime:0,route:structuredClone(route),waypoint:1,suspicion:0,alerted:false,lostSight:0,age:0}));
+ s.citizens=CIVIC_ROUTES.map((route,i)=>({id:'citizen-'+i,type:'citizen',x:route[0].x,z:route[0].z,yaw:Math.PI,route:structuredClone(route),waypoint:1,speed:1.2+i%3*.2,path:[],pathTime:0,alive:true}));
+ s.citizens.push({id:'mara',type:'mara',x:-5,z:67,yaw:.9,speed:0,alive:true});
+}
+function followRoute(s,a,dt,speed,goal){
+ a.pathTime=(a.pathTime||0)-dt;if(!a.routeGoal||dist(a.routeGoal,goal)>1||a.pathTime<=0&&!a.path?.length){a.path=routeTo(s,a,goal);a.routeGoal={...goal};a.pathTime=.8}
+ const next=a.path?.[0];if(!next)return;const n=dist(a,next)||1,angle=Math.atan2(next.x-a.x,next.z-a.z);a.yaw+=wrap(angle-a.yaw)*Math.min(1,dt*6);const step=Math.min(n,dt*speed);move(s,a,(next.x-a.x)/n*step,(next.z-a.z)/n*step);if(n<.4)a.path.shift();
+}
+function cityTick(s,dt){
+ const p=s.player;s.scanner={x:Math.sin(s.time*.12)*35,z:Math.cos(s.time*.12)*50};const scan=s.chapter===4&&dist(p,s.scanner)<7&&clearLine(s,s.scanner,p);
+ for(const c of s.citizens)if(c.route){const goal=c.route[c.waypoint];followRoute(s,c,dt,c.speed,goal);if(dist(c,goal)<.8)c.waypoint=(c.waypoint+1)%c.route.length}
+ for(const e of s.enemies)if(e.alive){
+  const distance=dist(e,p),angle=Math.abs(wrap(Math.atan2(p.x-e.x,p.z-e.z)-e.yaw)),range=p.crouching?11:22,seen=distance<range&&(angle<.66||distance<(p.crouching?2.2:4.2))&&clearLine(s,e,p);
+  e.suspicion=clamp(e.suspicion+dt*((scan&&dist(e,p)<40)?.75:seen?(p.crouching?.55:1.0):-.38),0,1);
+  if(seen){e.lastSeen={x:p.x,z:p.z};e.lostSight=0}else e.lostSight+=dt;
+  if(e.suspicion>=1&&!e.alerted){e.alerted=true;s.cityAlarms++;emit(s,'spotted')}
+  if(e.alerted){if(seen)guardTick(s,e,dt);else if(e.lostSight<5&&e.lastSeen)followRoute(s,e,dt,3.6,e.lastSeen);else{e.alerted=false;e.suspicion=0;e.windup=0}}
+  else{e.stagger=Math.max(0,e.stagger-dt);if(e.stagger<=0){const goal=e.route[e.waypoint];followRoute(s,e,dt,2.2,goal);if(dist(e,goal)<1)e.waypoint=(e.waypoint+1)%e.route.length}}
+ }
+ s.exposure=Math.max(0,...s.enemies.filter(e=>e.alive).map(e=>e.suspicion));s.alerted=s.enemies.some(e=>e.alive&&e.alerted);
+}
+export const distance3=(a,b)=>Math.hypot(a.x-b.x,(a.y||0)-(b.y||0),a.z-b.z);
+export const flightVector=(yaw,pitch=0)=>({x:Math.sin(yaw)*Math.cos(pitch),y:Math.sin(pitch),z:Math.cos(yaw)*Math.cos(pitch)});
+export function pointSegment3(p,a,b){const x=b.x-a.x,y=(b.y||0)-(a.y||0),z=b.z-a.z,t=clamp(((p.x-a.x)*x+((p.y||0)-(a.y||0))*y+(p.z-a.z)*z)/(x*x+y*y+z*z||1),0,1);return Math.hypot(p.x-a.x-x*t,(p.y||0)-(a.y||0)-y*t,p.z-a.z-z*t)}
+function spawnSky(s){
+ s.cores=SKY_CORES.map((q,i)=>({...q,id:'uplink-'+i,type:'uplink',hp:130,maxHp:130,alive:true}));
+ s.enemies=[{x:-80,y:48,z:-65},{x:80,y:32,z:-120}].map((q,i)=>({...q,id:'interceptor-'+i,type:'jet',yaw:0,pitch:0,hp:75,maxHp:75,alive:true,speed:24,fire:2+i,action:0}));
+}
+export function flightTarget(s){
+ const p=s.player,f=flightVector(p.yaw,p.pitch),candidates=[...s.cores,...s.enemies].filter(q=>q.alive).map(q=>{const d=distance3(p,q)||1,dot=((q.x-p.x)*f.x+(q.y-p.y)*f.y+(q.z-p.z)*f.z)/d;return{q,d,dot}}).filter(t=>t.d<155&&t.dot>.80).sort((a,b)=>(1-a.dot)*100+a.d*.12-((1-b.dot)*100+b.d*.12));return candidates[0]?.q||null;
+}
+function fireBolt(s,a,player=false){
+ let target=player?flightTarget(s):s.player,v=flightVector(a.yaw,a.pitch);
+ if(target){const d=distance3(a,target),lead=target.type==='uplink'?0:d/140,velocity=flightVector(target.yaw||0,target.pitch||0),aim={x:target.x+velocity.x*(target.speed||0)*lead,y:target.y+velocity.y*(target.speed||0)*lead,z:target.z+velocity.z*(target.speed||0)*lead},n=distance3(a,aim)||1;v={x:(aim.x-a.x)/n,y:(aim.y-a.y)/n,z:(aim.z-a.z)/n}}
+ s.bolts.push({id:'bolt-'+s.serial++,owner:a.id,x:a.x+v.x*3,y:a.y+v.y*3,z:a.z+v.z*3,dx:v.x,dy:v.y,dz:v.z,age:0,damage:player?13:14});a.action=.16;emit(s,'laser',{x:a.x,y:a.y,z:a.z,owner:a.id});
+}
+function jetTick(s,a,dt,input={}){
+ if(!a.alive)return;
+ if(a.id==='player'){
+  a.yaw-=clamp(input.steer||0,-1,1)*dt*1.45;a.pitch+=(clamp(input.climb||0,-1,1)*.43-a.pitch)*Math.min(1,dt*3.8);const boost=!!input.boost&&a.energy>2;a.boosting=boost;a.energy=clamp(a.energy+dt*(boost?-20:11),0,100);const wanted=boost?44:input.brake?17:27;a.speed+=(wanted-a.speed)*Math.min(1,dt*2.2);
+ }else{
+  const p=s.player,nearEdge=Math.abs(a.x)>SKY_BOUNDS.x-30||Math.abs(a.z)>SKY_BOUNDS.z-30,goal=nearEdge?{x:0,y:45,z:0}:p,angle=Math.atan2(goal.x-a.x,goal.z-a.z),pitch=Math.atan2(goal.y-a.y,Math.hypot(goal.x-a.x,goal.z-a.z));a.yaw+=clamp(wrap(angle-a.yaw),-dt*.85,dt*.85);a.pitch+=clamp(pitch-a.pitch,-dt*.35,dt*.35);a.fire-=dt;if(a.fire<=0&&distance3(a,p)<120&&Math.abs(wrap(angle-a.yaw))<.25){fireBolt(s,a);a.fire=2.4}
+ }
+ const v=flightVector(a.yaw,a.pitch);a.x+=v.x*a.speed*dt;a.y=clamp(a.y+v.y*a.speed*dt,18,90);a.z+=v.z*a.speed*dt;
+ if(Math.abs(a.x)>SKY_BOUNDS.x-5||Math.abs(a.z)>SKY_BOUNDS.z-5){a.yaw+=wrap(Math.atan2(-a.x,-a.z)-a.yaw)*Math.min(1,dt*4);a.x=clamp(a.x,-SKY_BOUNDS.x+3,SKY_BOUNDS.x-3);a.z=clamp(a.z,-SKY_BOUNDS.z+3,SKY_BOUNDS.z-3)}
+ for(const o of SKY_TOWERS)if(a.y<o.h+2&&Math.abs(a.x-o.x)<o.w+2&&Math.abs(a.z-o.z)<o.d+2){hurt(s,a,20);a.yaw=Math.atan2(a.x-o.x,a.z-o.z);const f=forward(a.yaw);a.x+=f.x*5;a.z+=f.z*5}
+ a.action=Math.max(0,(a.action||0)-dt);
+}
+function boltsTick(s,dt){
+ for(const b of s.bolts){b.age+=dt;const from={x:b.x,y:b.y,z:b.z};b.x+=b.dx*140*dt;b.y+=b.dy*140*dt;b.z+=b.dz*140*dt;
+  let blocked=SKY_TOWERS.some(o=>b.y<o.h&&Math.abs(b.x-o.x)<o.w&&Math.abs(b.z-o.z)<o.d);
+  if(!blocked)for(const a of b.owner==='player'?[...s.enemies,...s.cores]:[s.player])if(a.alive&&pointSegment3(a,from,b)<(a.type==='uplink'?4.5:2.7)){hurt(s,a,b.damage,b.owner==='player');blocked=true;break}
+  if(blocked){b.gone=true;emit(s,'explosion',{x:b.x,y:b.y,z:b.z})}if(b.age>2)b.gone=true;
+ }s.bolts=s.bolts.filter(b=>!b.gone);
+}
+export function rayBox(origin,direction,box,pad=0){
+ let near=0,far=Infinity;for(const [axis,extent]of[['x','w'],['z','d']]){const min=box[axis]-box[extent]-pad,max=box[axis]+box[extent]+pad,d=direction[axis];if(Math.abs(d)<.00001){if(origin[axis]<min||origin[axis]>max)return Infinity;continue}let a=(min-origin[axis])/d,b=(max-origin[axis])/d;if(a>b)[a,b]=[b,a];near=Math.max(near,a);far=Math.min(far,b);if(near>far)return Infinity}return far<0?Infinity:near;
+}
+export function aimSolution(s){
+ const p=s.player;if(s.chapter===5){const target=flightTarget(s),v=flightVector(p.yaw,p.pitch);return{point:target?{x:target.x,y:target.y,z:target.z}:{x:p.x+v.x*120,y:p.y+v.y*120,z:p.z+v.z*120},target,blocked:false}}
+ const v=forward(p.turretYaw),origin={x:p.x+v.x*3.4,z:p.z+v.z*3.4};let range=100,target=null,blocked=false;
+ for(const o of coverOf(s)){const t=rayBox(origin,v,o,.25);if(t<range){range=t;target=null;blocked=true}}
+ for(const e of s.enemies)if(e.alive){const x=e.x-origin.x,z=e.z-origin.z,t=x*v.x+z*v.z,side=x*x+z*z-t*t;if(t>0&&side<2.5**2){const hit=t-Math.sqrt(Math.max(0,2.5**2-side));if(hit<range){range=hit;target=e;blocked=false}}}
+ return{point:{x:origin.x+v.x*range,y:2.05,z:origin.z+v.z*range},target,blocked,distance:range};
+}
 export function advance(s,seconds,input={}){
  const dt=clamp(Number(seconds)||0,0,.05);s.events=[];if(s.dead||s.finished)return s.events;s.time+=dt;s.chapterTime+=dt;const p=s.player;for(const unit of[p,...s.enemies])animationTick(unit,dt);s.shake=Math.max(0,s.shake-dt);for(const key of['attack','dash','pulse','invuln','action'])p[key]=Math.max(0,p[key]-dt);s.comboTime=Math.max(0,s.comboTime-dt);
- p.shield=Math.max(0,(p.shield||0)-dt);
+ p.shield=Math.max(0,(p.shield||0)-dt);p.crouching=isCity(s)&&!!input.crouch;
  if(s.chapter===1){bikeTick(s,p,dt,input);for(const e of s.enemies)bikeTick(s,e,dt,input);s.trails=s.trails.filter(t=>s.time-t.born<16).slice(-1600)}
+ else if(s.chapter===5){jetTick(s,p,dt,input);for(const e of s.enemies)jetTick(s,e,dt);boltsTick(s,dt)}
  else if(s.chapter===2){tankTick(s,p,dt,input);for(const e of s.enemies)tankTick(s,e,dt);shellsTick(s,dt)}
- else{p.energy=clamp(p.energy+dt*10,0,100);let x=input.x||0,z=input.z||0,n=Math.hypot(x,z);p.moving=n>.08;if(p.dashTime>0){p.dashTime-=dt;move(s,p,p.dashX*dt*23,p.dashZ*dt*23)}else if(p.moving){x/=Math.max(1,n);z/=Math.max(1,n);if(!p.pending)p.yaw=Math.atan2(x,z);move(s,p,x*dt*7,z*dt*7)}for(const e of s.enemies)if(e.alive)guardTick(s,e,dt);for(const orb of s.pickups){orb.age+=dt;if(dist(orb,p)<2){p.hp=clamp(p.hp+9,0,100);p.energy=clamp(p.energy+18,0,100);orb.gone=true;emit(s,'pickup',{x:orb.x,z:orb.z})}}s.pickups=s.pickups.filter(o=>!o.gone)}
+ else{p.energy=clamp(p.energy+dt*10,0,100);let x=input.x||0,z=input.z||0,n=Math.hypot(x,z);p.moving=n>.08;if(p.dashTime>0){p.dashTime-=dt;move(s,p,p.dashX*dt*23,p.dashZ*dt*23)}else if(p.moving){x/=Math.max(1,n);z/=Math.max(1,n);if(!p.pending)p.yaw=Math.atan2(x,z);move(s,p,x*dt*(p.crouching?3:7),z*dt*(p.crouching?3:7))}if(isCity(s))cityTick(s,dt);else for(const e of s.enemies)if(e.alive)guardTick(s,e,dt);for(const orb of s.pickups){orb.age+=dt;if(dist(orb,p)<2){p.hp=clamp(p.hp+9,0,100);p.energy=clamp(p.energy+18,0,100);orb.gone=true;emit(s,'pickup',{x:orb.x,z:orb.z})}}s.pickups=s.pickups.filter(o=>!o.gone)}
  if(s.dead)return s.events;pendingTick(s,p);if(input.attack)act(s,'attack');if(input.dash)act(s,'dash');if(input.pulse)act(s,'pulse');if(input.interact)act(s,'interact');discsTick(s,dt);if(s.dead)return s.events;
- if(s.chapter===3)return s.events;
+ if(s.chapter===3){if(s.archiveRead&&dist(p,REFUGE_EXIT)<3)enterChapter(s,4);return s.events}
+ if(isCity(s)){if(s.chapter===4&&s.relayHacked&&dist(p,SKYPORT)<5){if(s.mode==='story')enterChapter(s,5);else finish(s)}return s.events}
+ if(s.chapter===5){if(s.cores.every(e=>!e.alive)&&!s.gate){s.gate=true;emit(s,'gate');if(s.mode!=='story')finish(s)}if(s.mode==='story'&&s.gate&&distance3(p,SKY_EXIT)<17)finish(s);return s.events}
  if(s.enemies.every(e=>!e.alive)&&!s.gate){if(!s.chapter&&s.wave<3){s.waveDelay+=dt;if(s.waveDelay>1.6){s.waveDelay=0;spawnWave(s)}}else{s.gate=true;emit(s,'gate');if(s.mode!=='story')finish(s)}}
  if(s.mode==='story'&&s.gate&&dist(p,gateOf(s))<(isVehicle(s)?6:3))enterChapter(s,s.chapter+1);return s.events;
 }
-function finish(s){s.finished=true;const key=s.chapter===2?'bestTank':s.chapter===1?'bestCycle':'bestDisc';if(s.chapter<3)s.profile[key]=Math.max(s.profile[key]||0,s.score);if(s.mode==='story')s.profile.cleared=true;emit(s,'victory')}
-export function objective(s){if(s.chapter===3)return s.profile.flynnFound?'Flynn’s archive recovered':'Investigate the white-lit refuge';if(s.chapter===2)return s.gate?'Reach the refuge beyond the ridge':'Cross the Outlands · '+s.enemies.filter(e=>e.alive).length+' tanks remaining';if(s.chapter===1)return s.gate?'Reach the uplink at the far end of the arena':'Break the pursuit · '+s.enemies.filter(e=>e.alive).length+' cycles remaining';if(s.gate)return s.mode==='story'?'Reach the transit gate':'Disc arena cleared';return'Clear the quarantine · wave '+s.wave+' / 3'}
+function finish(s){s.finished=true;const key=s.chapter===5?'bestJet':isCity(s)?'bestCity':s.chapter===2?'bestTank':s.chapter===1?'bestCycle':'bestDisc';if(s.chapter!==3)s.profile[key]=Math.max(s.profile[key]||0,s.score);if(s.mode==='story')s.profile.cleared=true;emit(s,'victory')}
+export function objective(s){
+ if(s.chapter===6)return 'Argon is free · explore the district';
+ if(s.chapter===5)return s.gate?'Follow ECHO’s return signal':'Break the erasure array · '+s.cores.filter(e=>e.alive).length+' uplinks';
+ if(s.chapter===4)return s.relayHacked?'Reach the skyport · take a light jet':'Recover the root key at the civic relay';
+ if(s.chapter===3)return s.archiveRead?'Leave through the service door · enter Argon':'Investigate Flynn’s terminal';
+ if(s.chapter===2)return s.gate?'Reach the refuge beyond the ridge':'Cross the Outlands · '+s.enemies.filter(e=>e.alive).length+' tanks remaining';
+ if(s.chapter===1)return s.gate?'Reach the Outlands uplink':'Break the pursuit · '+s.enemies.filter(e=>e.alive).length+' cycles remaining';
+ if(s.gate)return s.mode==='story'?'Reach the transit gate':'Disc arena cleared';return 'Escape the Archive · wave '+s.wave+' / 3';
+}

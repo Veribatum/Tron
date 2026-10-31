@@ -45,7 +45,7 @@ function overlay(pose,clip,age,weight=1){
  return pose;
 }
 export function gaitFrequency(speed){return speed>0?speed*.31/(2*mix(.25,.43,clamp(speed/7))):0}
-export function samplePose({phase=0,speed=0,moveX=0,moveZ=1,time=0,turn=0,clip='',age=0,windup=0,heavy=false,hitAge=99,catchAge=99}={}){
+export function samplePose({phase=0,speed=0,moveX=0,moveZ=1,time=0,turn=0,clip='',age=0,windup=0,heavy=false,hitAge=99,catchAge=99,crouching=false}={}){
  const p=neutral(),amount=ease(clamp(speed/.8)),amplitude=mix(.25,.43,clamp(speed/7)),direction=Math.hypot(moveX,moveZ)||1;
  const feet=[];let support=0;
  for(const [side,offset]of[['L',0],['R',.5]]){
@@ -58,6 +58,7 @@ export function samplePose({phase=0,speed=0,moveX=0,moveZ=1,time=0,turn=0,clip='
  p.hipY=mix(.94+Math.sin(time*1.6)*.004,.93-.105*support,amount);p.hipX=Math.sin(phase*Math.PI*2)*.018*amount;
  p.hips[2]=-clamp(turn,-3,3)*.035;p.torso=[.11*amount,Math.sin(phase*Math.PI*2)*.09*amount,clamp(turn,-3,3)*-.035];p.head=[-.06*amount,Math.sin(time*.4)*.04,0];
  const swing=Math.sin(phase*Math.PI*2)*.7*amount;p.armL[0]=-swing-.1;p.armR[0]=swing-.1;p.elbowL[0]=-.4-Math.max(0,swing)*.5;p.elbowR[0]=-.4-Math.max(0,-swing)*.5;
+ if(crouching){p.hipY-=.14;p.torso[0]+=.16;p.head[0]-=.08;p.armL[0]-=.15;p.armR[0]-=.15}
  if(clip&&age<=CLIPS[clip]?.duration)overlay(p,clip,age);
  if(windup>0){const wind=heavy?'slash3':'throw';overlay(p,wind,CLIPS[wind].impact*(1-clamp(windup)),.95)}
  if(catchAge<.3&&(!clip||clip==='throw'&&age>.32)){const u=Math.sin(clamp(catchAge/.3)*Math.PI);p.armR=blend(p.armR,[-1.05,.1,-.15],u);p.elbowR=blend(p.elbowR,[-.8,0,0],u);p.fingersR=mix(.1,.85,ease(catchAge/.18))}
