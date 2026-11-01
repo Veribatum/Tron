@@ -2,17 +2,17 @@
 
 An independent, unofficial TRON-inspired browser game. Third-person disc combat, light cycles, light tanks, a city infiltration and controllable light jets. Buildless WebGL with local assets and phone/desktop controls.
 
-## The Last Free Address · 0.5
+## The Last Free Address · 0.6
 
-You are a surviving program from the old Grid. The Warden has scheduled Argon’s unregistered identities for erasure. ECHO guides you toward Flynn’s unlisted refuge; his stored recording points toward a root key in the city’s civic relay.
+The campaign opens with an authored escape level: Detention 07 → Processing Hall → Coolant Spine → Reactor Concourse → Archive Stacks → Freight Apron → Vehicle Bay. Rooms have connected floors, solid boundaries, ceilings, props and doorways. Restore service power, recover Flynn’s unlisted address from the transit manifest, and open the freight garage. Encounters activate along the route; clearing a wave does not advance the campaign. Two optional identity caches reward exploring side rooms.
 
-The chapter now continues through the Archive, Perimeter, Outlands, refuge, Argon district and aerial memory lattice. Short in-engine camera scenes explain each transition. Pause → Story so far provides the current reason and objective; scenes can be skipped or replayed. Combat tricks are left for players to discover.
+Board the courier cycle in the garage. Freight Line 07 is a 574 m winding elevated highway, with viaducts, junction signs, checkpoints and pursuing riders. Reach Maintenance Depot 07, park the cycle, walk into its armor bay, and board a visible maintenance tank. The Warden erased the bridge beyond the depot, so the tank must use the dry aqueduct below it.
 
-The refuge is a midpoint. Leave the refuge through its marked service door. Recovering the civic key reveals the Warden’s erasure list and opens a light-jet cradle at the skyport; approach it and choose BOARD. The aerial mission has three erasure uplinks, defending interceptors, altitude, banked steering, boost, brakes and energy cannons. A flight compass, climb/dive cue, radar marker and world beacon track a remaining uplink even after it passes behind you. After the array is severed, a return flight leads to a resolved ending and a peaceful district you can explore.
+The aqueduct follows a 660 m canyon route around bends, through cover and security outposts. Destroy two dam power cores with the cannon to open their physical gates. Reach the white signal, leave the tank, and walk through the refuge doorway. Short vehicle scenes and in-game radio dialogue explain the route while play continues.
 
-Argon has connected avenues and service alleys, matching building collisions, moving residents, Mara, patrol routes, line-of-sight detection, crouching, cover and a recognizer searchlight. Fighting remains possible; breaking contact lets patrols return to their routes. Recognizers are security scenery; the jet is the controllable aircraft.
+Flynn’s recording leads into Argon’s streets and service alleys. Recover the civic relay’s root key, board a light jet, and follow aerial memory channels between viaducts to the erasure uplinks. Breaking the array leads to a resolved ending and a district you can explore. Pause → Story so far gives the current reason and objective.
 
-Tanks have a projected aiming reticle with range, target lock, cover obstruction, reload and hit feedback, plus cannon flash and drifting muzzle smoke. Dragging preserves manual turret aim while steering; AIM switches back to automatic targeting. Tapping an enemy can select a lock. Reticle rays and moving shells use one first-hit trace for terrain, armor and arena edges, including actor hits immediately in front of cover.
+The disc, cycle and tank arenas remain available as separate practice modes. Campaign progression uses authored routes, terminals, discoveries, blockades and boarding points.
 
 ## Controls
 
@@ -29,14 +29,15 @@ Tanks have a projected aiming reticle with range, target lock, cover obstruction
 | Jet climb / dive | W / S | Left stick vertical |
 | Jet steering | A / D | Left stick horizontal |
 | Jet brake | B | BRAKE |
-| Other vehicle brake | S | BRAKE / stick back |
+| Cycle brake | S / B | BRAKE / stick back |
+| Tank reverse / brake | S / B | Stick back / BRAKE |
 | Pause / recap | Escape | Pause button |
 
 Simulation select offers disc, cycle, tank, Argon and jet missions directly. Practice preserves the campaign checkpoint. This is a finite first chapter, not a full open world or multiplayer game.
 
 ## Saves and verification
 
-The existing `gridrunner-profile-v1` key is retained. Previous names, colors, appearance, records and sector checkpoints remain valid. A previous save at the refuge continues into Argon. The relay key is saved within its sector, and the resolved chapter resumes as district exploration. New chapter resets story flags while preserving appearance and simulation records.
+The existing `gridrunner-profile-v1` key is retained. Version 0.6 adds mid-level saves for terminal objectives, opened doors, highway checkpoints, destroyed dam cores, optional caches and on-foot dismounts. Continue resumes the current area; New Chapter replays the rebuilt opening while preserving appearance and arena records. Previous names, colors, appearance, records and sector checkpoints remain valid. A previous save at the refuge continues into Argon. The relay key is saved within its sector, and the resolved chapter resumes as district exploration. New chapter resets story flags while preserving appearance and simulation records.
 
 Procedural animation includes planted-foot IK, distinct timed combat clips, rider hand IK, banking, animated tank treads and cannon recoil. Pause freezes motion. All game assets and dependencies are local.
 
@@ -46,7 +47,7 @@ npm test
 npm run check
 ```
 
-Engine tests cover the campaign handoffs, old saves, city routes and sight, crouching, tank aiming/cover, three-dimensional flight/weapon hits, return flight and epilogue, alongside earlier combat and animation regressions. GitHub Actions also renders real desktop/phone play, story scenes, the refuge-to-city continuation, actual movement through Argon to recover the key and board the jet, flight direction cues, jet combat and the epilogue. Screenshots are retained as `gridrunner-browser-proof`.
+Engine tests drive and walk the authored opening, full highway and full aqueduct using real simulation inputs; verify matching floor/wall collision, closed-door pathfinding, side caches, mid-level reloads and vehicle dismounts; and cover the campaign handoffs, old saves, city routes and sight, crouching, tank aiming/cover, three-dimensional flight/weapon hits, return flight and epilogue, alongside earlier combat and animation regressions. GitHub Actions also renders real desktop/phone play, story scenes, the refuge-to-city continuation, actual movement through Argon to recover the key and board the jet, flight direction cues, jet combat and the epilogue. A separate browser job walks the new opening and steers the entire highway with actual keyboard controls, boards both vehicles, destroys the first dam and resumes the refuge approach. Screenshots are retained as `gridrunner-browser-proof` and `gridrunner-level-proof`.
 
 Publish GitHub Pages from **main / (root)**. `.nojekyll` and relative paths support the repository subpath.
 

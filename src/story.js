@@ -1,11 +1,11 @@
-import {CHAPTERS} from './world.js?v=5';
+import {CHAPTERS} from './world.js?v=6';
 const shot=(speaker,text,camera,look)=>({speaker,text,camera,look});
 export function sceneFor(chapter){
  const scenes=[
   [shot('THE GRID / NEXT CYCLE','You survived the first Grid. Now the Warden has ordered every unregistered program in Argon erased.',[-18,12,35],[0,2,0]),shot('ECHO','I can get you out of the Archive. Flynn left an emergency key in an unlisted refuge. Find it before the city forgets us.',[-29,2.1,23],[-27,1.2,27])],
-  [shot('ECHO','The transit gate is behind you. The Warden’s riders have your signature. The refuge is beyond the Outlands.',[-10,4,48],[0,1,35])],
-  [shot('ECHO','The service ridge is sealed. I found a maintenance tank outside the registry. Take the ridge. The white signal is on the other side.',[-11,4,72],[0,1.1,63])],
-  [shot('UNLISTED ADDRESS','No patrols. No registry. A human room in a digital world. Flynn’s terminal is still drawing power.',[-8,3,5],[0,1.5,-10])],
+  [shot('THE GRID / ERASURE CYCLE','The Warden has ordered Argon’s unregistered programs erased. You are one of them. A voice calling herself ECHO just unlocked your cell.',[-69,2.7,141],[-64,1.3,126]),shot('ECHO','I found your name on the manifest. There is an old freight route beneath this facility. Reach its transit records—we need an address the Warden cannot see.',[-57,2.8,130],[-64,1.3,112])],
+  [shot('ECHO','Courier 07 was never logged out. You found Flynn’s unlisted address in the manifest; this freight line reaches the maintenance depot on its approach.',[79,4.8,174],[72,1.3,142]),shot('WARDEN / FREIGHT CONTROL','Unregistered courier. The bridge beyond Depot 07 has been removed from the system.',[-14,32,104],[-24,1,88])],
+  [shot('ECHO','The bridge is gone, but its old aqueduct still runs beneath the ridge. The depot’s maintenance tank can make that crossing. The white signal is at the far end.',[48,4.5,190],[40,1.5,158])],
   [shot('ARGON / BEFORE THE ERASURE','Thousands of programs are still living their last ordinary cycle. The Warden’s patrols have sealed the avenues.',[-26,100,76],[0,1,20]),shot('MARA / FREE PROGRAM','ECHO sent me. The civic relay is through the western service alleys. The skyport is beyond it. I’ll keep the channel open.',[-9,2.3,68],[-5,1.2,67])],
   [shot('ECHO','The root key marked three erasure uplinks above Argon. Break their connection to the city, then follow my signal home.',[-12,48,153],[0,37,110]),shot('THE WARDEN','Unregistered aircraft. The city’s memory is under my protection.',[38,66,-74],[65,58,-103])],
   [shot('ARGON / FIRST FREE CYCLE','The erasure order has no address left to reach. Across the district, names return to the registry—and stay their own.',[-14,95,75],[0,2,5]),shot('ECHO','You came here looking for Flynn. You found what he tried to leave us. Mara is waiting in the district.',[-9,2.4,72],[-5,1.1,67])]
@@ -20,6 +20,7 @@ export const RELAY_SCENE={title:'THE LIST OF THE LIVING',shots:[
  shot('MARA','The Warden moved the erasure command above the city. I unlocked a jet at Skyport 07. Bring our names home.',[30,4,-65],[37,2,-77])
 ]};
 export function recap(s){
+ if(s.levelMap){const objective=s.onFoot?s.levelMap.foot.objective:s.levelMap.stages?.[s.levelStage].objective|| (s.chapter===1?'Follow Freight Line 07 to the maintenance depot.':'Cross the dry aqueduct, disable its security dams, and find the white signal.');return 'The Warden erases unregistered identities at the next cycle. ECHO freed you from detention. Flynn’s unlisted address may lead to a way to stop the erasure. '+objective+'.'}
  const task=[
   'Escape the Archive. ECHO is guiding you toward an unlisted refuge before the Warden erases Argon’s unregistered programs.',
   'Break the pursuit and cross the perimeter. The route to Flynn’s refuge continues through the Outlands.',

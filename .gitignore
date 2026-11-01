@@ -2,3 +2,4 @@ node_modules/
 browser-proof/
 .DS_Store
 *.log
+level-proof/
