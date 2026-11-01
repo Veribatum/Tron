@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as M from '../src/sim.js';
+import {sceneFor} from '../src/story.js';
 import {LEVELS,roadPoint,nearestRoad,FLIGHT_APPROACH} from '../src/levels.js';
 const run=chapter=>M.createRun({profile:{...M.newProfile('EXPLORER'),checkpoint:chapter}});
 function followFoot(s,chapter,max=5000){
@@ -43,3 +44,7 @@ test('route saves and optional identity caches survive reloads while old sector 
 test('the aerial mission has a navigable approach through channels before the uplinks',()=>{
  const s=run(5);assert.equal(M.navigationTarget(s).label,'SKYPORT DEPARTURE');s.player.x=FLIGHT_APPROACH[0].x;s.player.y=FLIGHT_APPROACH[0].y;s.player.z=FLIGHT_APPROACH[0].z;M.advance(s,.02);assert.equal(s.flightLeg,1);assert.equal(M.navigationTarget(s).label,'WEST MEMORY CHANNEL');
 });
+
+test('vehicle and refuge scenes refer to the route actually entered',()=>{assert(sceneFor(0).shots[0].text.includes('cell'));assert(sceneFor(1).shots.some(q=>q.text.includes('bridge')));assert(sceneFor(2).shots.some(q=>q.text.includes('aqueduct')));assert(sceneFor(3).shots[0].text.includes('terminal'));assert(sceneFor(0).shots.every(q=>q.camera[1]<6))});
+
+test('keyboard movement follows archive corners without skipping a required waypoint beside a column',()=>{const s=run(0);for(let i=0;i<2200&&!s.dead&&s.chapter===0;i++){const goal=M.navigationTarget(s).point,dx=goal.x-s.player.x,dz=goal.z-s.player.z,x=Math.abs(dx)>.18?Math.sign(dx):0,z=Math.abs(dz)>.18?Math.sign(dz):0;for(let j=0;j<3&&s.chapter===0;j++){const interaction=M.campaignInteraction(s);M.advance(s,.04,{x,z,attack:!interaction,interact:!!interaction,pulse:s.player.hp<50})}}assert(!s.dead);assert.equal(s.chapter,1,JSON.stringify({stage:s.levelStage,player:s.player,nav:M.navigationTarget(s)}))});

@@ -313,7 +313,17 @@ function roadRiderTick(s,b,dt){
 }
 function campaignNavigation(s){
  const map=s.levelMap;if(s.onFoot)return{point:map.foot.point,label:map.foot.label==='BOARD'?'ARMOR BAY':'WHITE SIGNAL'};
- if(map.stages){const stage=map.stages[s.levelStage];let cache=s.navCache;if(!cache||cache.stage!==s.levelStage||s.time-cache.time>.8&&dist(cache.from,s.player)>4){cache=s.navCache={stage:s.levelStage,time:s.time,from:{x:s.player.x,z:s.player.z},route:routeTo(s,s.player,stage.point)}}while(cache.route.length>1&&dist(s.player,cache.route[0])<2)cache.route.shift();let point=cache.route[0]||stage.point;for(const q of cache.route){if(!clearLine(s,s.player,q,.7))break;point=q;if(dist(s.player,q)>14)break}return{point,label:stage.name,destination:stage.point}}
+ if(map.stages){
+  const stage=map.stages[s.levelStage],p=s.player;let cache=s.navCache;
+  if(!cache||cache.stage!==s.levelStage||!cache.route.length||!clearLine(s,p,cache.route[0],.5)||s.time-cache.time>.8&&dist(cache.from,p)>4){
+   const radius=1.2,line=(a,b,r)=>clearLine(s,a,b,dist(a,p)<.01||dist(b,p)<.01?.5:r),raw=floorRoute(map,p,stage.point,(x,z,r)=>walkable(s,x,z,r),radius,line),route=[];
+   // Keep real turns instead of drawing a diagonal shortcut across a room's props.
+   let previous={x:p.x,z:p.z},heading=null;for(let i=0;i<raw.length;i++){const q=raw[i],h=Math.atan2(q.x-previous.x,q.z-previous.z);if(heading!==null&&Math.abs(wrap(h-heading))>.02)route.push(raw[i-1]);heading=h;previous=q}if(raw.length)route.push(raw.at(-1));
+   cache=s.navCache={stage:s.levelStage,time:s.time,from:{x:p.x,z:p.z},route};
+  }
+  while(cache.route.length>1&&dist(p,cache.route[0])<1.1&&clearLine(s,p,cache.route[1],.7))cache.route.shift();
+  return{point:cache.route[0]||stage.point,label:stage.name,destination:stage.point};
+ }
  if(map.powers)for(const power of map.powers){const unit=s.enemies.find(e=>e.id===power.id);if(unit?.alive){const gate=map.doors.find(d=>d.power===power.id),at=nearestRoad(map,gate).s;if(s.roadS>at-55&&s.roadS<at+18)return{point:power,label:'SECURITY DAM / POWER CORE'}}}
  return{point:roadPoint(map,Math.min(map.routeLength,s.roadS+30)),label:s.chapter===1?'FREIGHT LINE 07':'DRY AQUEDUCT'};
 }
