@@ -127,6 +127,7 @@ function bikeTick(s,b,dt,input){
  else{b.yaw-=clamp(input.steer||0,-1,1)*dt*2.15;const boost=!!input.boost&&b.energy>2;b.boosting=boost;b.energy=clamp(b.energy+dt*(boost?-26:12),0,100);const wanted=boost?31:input.brake?10:18;b.speed+=(wanted-b.speed)*Math.min(1,dt*3.5)}
  const from={x:b.x,z:b.z},v=forward(b.yaw),to={x:b.x+v.x*b.speed*dt,z:b.z+v.z*b.speed*dt};
  if(!walkable(s,to.x,to.z,.9)||b.age>1.4&&trailDanger(s,from,to,b)){if(s.levelMap){hurt(s,b,12);const q=nearestRoad(s.levelMap,b);b.yaw+=wrap(q.yaw-b.yaw)*Math.min(1,dt*8);b.speed=Math.max(8,b.speed*.7);const pull=Math.min(1,dt*5);if(walkable(s,b.x+(q.x-b.x)*pull,b.z+(q.z-b.z)*pull,.9)){b.x+=(q.x-b.x)*pull;b.z+=(q.z-b.z)*pull}b.trailStart=null;return}crash(s,b);return}b.x=to.x;b.z=to.z;
+ if(s.chapter===7&&s.gate)return;
  if(!b.trailStart)b.trailStart={...from};b.trailTime+=dt;if(dist(b,b.trailStart)>1.4){s.trails.push({id:s.serial++,owner:b.id,a:b.trailStart,b:{x:b.x,z:b.z},born:s.time});b.trailStart={x:b.x,z:b.z}}
 }
 function fireShell(s,a,yaw,damage){const v=forward(yaw);s.shells.push({id:'shell-'+s.serial++,owner:a.id,x:a.x+v.x*3.4,z:a.z+v.z*3.4,dx:v.x,dz:v.z,age:0,damage});emit(s,'cannon',{x:a.x+v.x*3.4,y:2.05,z:a.z+v.z*3.4,dx:v.x,dz:v.z,owner:a.id})}
@@ -290,7 +291,14 @@ export function advance(s,seconds,input={}){
  if(s.chapter===3){if(s.archiveRead&&dist(p,REFUGE_EXIT)<3)enterChapter(s,4);return s.events}
  if(isCity(s)){if(s.chapter===6&&!s.profile.cleared)bridgeTick(s);return s.events}
  if(s.chapter===5){if(s.mode==='story'&&s.flightLeg<FLIGHT_APPROACH.length&&distance3(p,FLIGHT_APPROACH[s.flightLeg])<24){s.flightLeg++;emit(s,'message',{text:s.flightLeg===3?'ECHO: West channel reached. The uplink is in the open.':'ECHO: Follow the memory channel through the viaduct.'})}if(s.cores.every(e=>!e.alive)&&!s.gate){s.gate=true;emit(s,'gate');if(s.mode!=='story')finish(s)}if(s.mode==='story'&&s.gate&&distance3(p,SKY_EXIT)<17){s.profile.argonReturn=0;enterChapter(s,6)};return s.events}
- if(s.enemies.every(e=>!e.alive)&&!s.gate){if(!s.chapter&&s.wave<3){s.waveDelay+=dt;if(s.waveDelay>1.6){s.waveDelay=0;spawnWave(s)}}else{s.gate=true;emit(s,'gate');if(s.mode!=='story')finish(s)}}
+ if(s.enemies.every(e=>!e.alive)&&!s.gate){if(!s.chapter&&s.wave<3){s.waveDelay+=dt;if(s.waveDelay>1.6){s.waveDelay=0;spawnWave(s)}}else{
+   s.gate=true;emit(s,'gate');
+   if(s.chapter===7){
+    s.trails=[];
+    emit(s,'radio',{text:'DEPOT CONTROL: Champion verified. Light walls down. Take the north exit to the siege tank.'});
+   }
+   if(s.mode!=='story')finish(s);
+  }}
  if(s.mode==='story'&&s.gate&&dist(p,gateOf(s))<(s.chapter===7?10:isVehicle(s)?6:3))enterChapter(s,s.chapter===7?2:s.chapter+1);return s.events;
 }
 function finish(s){s.finished=true;const key=s.chapter===5?'bestJet':isCity(s)?'bestCity':s.chapter===2?'bestTank':isCycle(s)?'bestCycle':'bestDisc';if(s.chapter!==3)s.profile[key]=Math.max(s.profile[key]||0,s.score);if(s.mode==='story')s.profile.cleared=true;emit(s,'victory')}
