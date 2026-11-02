@@ -41,12 +41,12 @@ const archive={id:'archive',name:'ARCHIVE / THE UNLISTED',bounds:{x:104,z:188},s
 const cycle={id:'highway',name:'SERVICE HIGHWAY / FREIGHT LINE 07',bounds:{x:128,z:220},start:{x:72,z:160,yaw:Math.PI},width:26,
  road:smoothRoad([{x:72,z:160},{x:72,z:124},{x:40,z:88},{x:-20,z:88},{x:-68,z:52},{x:-68,z:-12},{x:-20,z:-56},{x:52,z:-56},{x:84,z:-96},{x:84,z:-148},{x:40,z:-180}]),
  rooms:[rect('MAINTENANCE DEPOT',40,-188,28,20,false),rect('ARMOR BAY',24,-196,12,10)],props:[{x:54,z:-188,w:3,d:4,h:2.6}],doors:[],
- foot:{spawn:{x:44,z:-176,yaw:Math.PI},point:{x:24,z:-190},label:'BOARD',aria:'Board the maintenance tank',objective:'Enter the depot’s armor bay and take the maintenance tank',name:'MAINTENANCE DEPOT / ON FOOT',radio:'ECHO: The bridge to the refuge is gone. Park here. A maintenance tank can take the dry aqueduct below it.'},
- docked:{kind:'tank',x:24,z:-196,yaw:0},checkpoints:[.28,.58,.83],shards:[]};
+ foot:{spawn:{x:44,z:-176,yaw:Math.PI},point:{x:24,z:-190},label:'ENTER',aria:'Enter the Light Cycle Grid',objective:'Enter Depot 07’s Light Cycle Grid and win the siege tank release code',name:'MAINTENANCE DEPOT / ON FOOT',radio:'ECHO: Depot control has impounded the siege tank. Win their Light Cycle Grid and the champion’s exit opens straight into the aqueduct.'},
+ docked:{kind:'cycle',x:24,z:-196,yaw:0},checkpoints:[.28,.58,.83],shards:[]};
 const tank={id:'aqueduct',name:'DRY AQUEDUCT / THE WHITE SIGNAL',bounds:{x:140,z:232},start:{x:40,z:180,yaw:Math.PI},width:36,
  road:smoothRoad([{x:40,z:180},{x:40,z:136},{x:0,z:104},{x:-64,z:104},{x:-92,z:64},{x:-92,z:8},{x:-56,z:-24},{x:16,z:-24},{x:52,z:-60},{x:52,z:-116},{x:0,z:-152},{x:-52,z:-152},{x:-72,z:-188}]),
  rooms:[rect('UNLISTED APPROACH',-72,-194,22,22,false),rect('REFUGE PASSAGE',-72,-210,8,14)],
- props:[{x:42,z:123,w:3,d:3,h:7},{x:-85,z:40,w:4,d:5,h:8},{x:-50,z:-18,w:3,d:3,h:6},{x:43,z:-57,w:3,d:3,h:7}],
+ props:[{x:-18,z:98,w:2.4,d:3.8,h:4},{x:47,z:-68,w:2.5,d:3.5,h:4},{x:58,z:-102,w:2.5,d:3.2,h:4},{x:42,z:123,w:3,d:3,h:7},{x:-85,z:40,w:4,d:5,h:8},{x:-50,z:-18,w:3,d:3,h:6},{x:43,z:-57,w:3,d:3,h:7}],
  doors:[{id:'dam-west',x:-40,z:104,w:.65,d:18,power:'power-west'},{id:'dam-north',x:52,z:-96,w:18,d:.65,power:'power-north'}],
  powers:[{id:'power-west',x:-28,z:115,hp:96},{id:'power-north',x:63,z:-80,hp:96}],
  foot:{spawn:{x:-72,z:-190,yaw:Math.PI},point:{x:-72,z:-212},label:'ENTER',aria:'Enter Flynn’s refuge',objective:'Leave the tank and enter the unlisted refuge',name:'WHITE SIGNAL / ON FOOT',radio:'ECHO: That white doorway is the address from the manifest. The tank cannot fit. Leave it here. We made it.'},

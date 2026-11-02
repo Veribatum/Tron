@@ -1,12 +1,12 @@
-import {buildCampaignWorld,updateCampaignWorld,powerModel,buildFlightChannels} from './level-view.js?v=6';
-import {CITY_BUILDINGS,CITY_RELAY,SKYPORT,SKY_TOWERS,SKY_EXIT} from './world.js?v=6';
+import {buildCampaignWorld,updateCampaignWorld,powerModel,buildFlightChannels} from './level-view.js?v=7';
+import {CITY_BUILDINGS,CITY_RELAY,SKYPORT,SKY_TOWERS,SKY_EXIT,ARGON_ACCESS,ARGON_RETURN,ARGON_BRIDGE} from './world.js?v=7';
 import * as T from '../vendor/three.module.js';
-import {COLORS,programModel,cycleModel,discModel,tankModel,recognizer,animateProgram,animateCycle,animateTank,jetModel,animateJet} from './art.js?v=6';
-import {coverOf,boundsOf,gateOf,targetOf,forward,clamp,wrap,isCity,isVehicle,isCycle,isTank,aimSolution,navigationTarget} from './sim.js?v=6';
+import {COLORS,programModel,cycleModel,discModel,tankModel,recognizer,animateProgram,animateCycle,animateTank,jetModel,animateJet} from './art.js?v=7';
+import {coverOf,boundsOf,gateOf,targetOf,forward,clamp,wrap,isCity,isVehicle,isCycle,isTank,aimSolution,navigationTarget} from './sim.js?v=7';
 const vshader='varying vec2 uv0;void main(){uv0=uv;gl_Position=vec4(position.xy,0.,1.);}';
 export class GridView{
  constructor(canvas,{low=false}={}){
-  this.canvas=canvas;this.low=low;this.renderer=new T.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});this.renderer.setPixelRatio(Math.min(low?1:1.5,devicePixelRatio||1));this.renderer.outputColorSpace=T.SRGBColorSpace;this.renderer.toneMapping=T.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.15;this.scene=new T.Scene();this.scene.background=new T.Color('#02050b');this.scene.fog=new T.FogExp2(0x02070e,.007);this.camera=new T.PerspectiveCamera(62,1,.1,900);this.root=new T.Group();this.scene.add(this.root);this.units=new Map();this.discs=new Map();this.orbs=new Map();this.shells=new Map();this.bolts=new Map();this.cores=new Map();this.fx=[];this.fallen=[];this.lastPlayer=null;this.yaw=Math.PI;this.pitch=.3;this.chapter=-1;this.time=0;this.color=COLORS.cyan;
+  this.canvas=canvas;this.low=low;this.renderer=new T.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});this.renderer.setPixelRatio(Math.min(low?1.25:2,devicePixelRatio||1));this.renderer.outputColorSpace=T.SRGBColorSpace;this.renderer.toneMapping=T.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.15;this.scene=new T.Scene();this.scene.background=new T.Color('#02050b');this.scene.fog=new T.FogExp2(0x02070e,.007);this.camera=new T.PerspectiveCamera(62,1,.1,900);this.root=new T.Group();this.scene.add(this.root);this.units=new Map();this.discs=new Map();this.orbs=new Map();this.shells=new Map();this.bolts=new Map();this.cores=new Map();this.fx=[];this.fallen=[];this.lastPlayer=null;this.yaw=Math.PI;this.pitch=.3;this.chapter=-1;this.time=0;this.color=COLORS.cyan;
   this.scene.add(new T.HemisphereLight(0x7297b8,0x05080f,2));const sun=new T.DirectionalLight(0xc1d9ef,2.6);sun.position.set(-30,50,20);this.scene.add(sun);const rim=new T.DirectionalLight(0x5bdcff,2);rim.position.set(20,9,-30);this.scene.add(rim);
   this.playerLight=new T.PointLight(0x60dbff,6,10,2);this.scene.add(this.playerLight);this.initGlow();this.resizeObserver=new ResizeObserver(()=>this.resize());this.resizeObserver.observe(canvas);this.resize();
  }
@@ -14,16 +14,21 @@ export class GridView{
  add(geo,mat,x=0,y=0,z=0,parent=this.root){const m=new T.Mesh(geo,mat);m.position.set(x,y,z);parent.add(m);return m}
  box(w,h,d,mat,x,y,z,parent=this.root){return this.add(new T.BoxGeometry(w,h,d),mat,x,y,z,parent)}
  circuitTexture(){const c=document.createElement('canvas');c.width=c.height=512;const x=c.getContext('2d');x.fillStyle='#14232f';x.fillRect(0,0,512,512);x.strokeStyle='#284554';x.lineWidth=2;for(let i=0;i<=512;i+=64){x.beginPath();x.moveTo(i,0);x.lineTo(i,512);x.moveTo(0,i);x.lineTo(512,i);x.stroke()}x.strokeStyle='#335563';x.lineWidth=1;for(let i=0;i<8;i++){const a=i*64;x.beginPath();x.moveTo(a+16,8);x.lineTo(a+16,36);x.lineTo(a+35,55);x.lineTo(a+35,150+i*30);x.stroke()}const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set(14,14);return t}
- clear(){const geos=new Set(),mats=new Set(),textures=new Set();this.root.traverse(o=>{if(o.geometry)geos.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])if(m){mats.add(m);if(m.map)textures.add(m.map)}});geos.forEach(g=>g.dispose());mats.forEach(m=>m.dispose());textures.forEach(t=>t.dispose());this.root.clear();this.units.clear();this.discs.clear();this.orbs.clear();this.shells.clear();this.bolts.clear();this.cores.clear();this.fx=[];this.fallen=[];this.lastPlayer=null;this.target=null;this.ally=null;this.archiveFigure=null;this.scanBeam=null;this.waypoint=null;this.returnBeacon=null;this.levelDoors=null;this.levelShards=null;this.lastShot=null;}
+ clear(){const geos=new Set(),mats=new Set(),textures=new Set();this.root.traverse(o=>{if(o.geometry)geos.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])if(m){mats.add(m);if(m.map)textures.add(m.map)}});geos.forEach(g=>g.dispose());mats.forEach(m=>m.dispose());textures.forEach(t=>t.dispose());this.root.clear();this.units.clear();this.discs.clear();this.orbs.clear();this.shells.clear();this.bolts.clear();this.cores.clear();this.fx=[];this.fallen=[];this.lastPlayer=null;this.target=null;this.ally=null;this.archiveFigure=null;this.scanBeam=null;this.waypoint=null;this.returnBeacon=null;this.argonBridge=null;this.bridgeGate=null;this.argonConsoles=null;this.levelDoors=null;this.levelShards=null;this.lastShot=null;}
  build(s){
   this.clear();this.chapter=s.chapter;this.onFoot=!!s.onFoot;this.color=COLORS[s.profile.color]||COLORS.cyan;const cycle=isCycle(s),tank=isTank(s),refuge=s.chapter===3,sky=s.chapter===5,city=isCity(s),b=boundsOf(s),black=this.material(0x080f18),steel=this.material(0x17232e),glass=this.material(0x0a1c27,{roughness:.15}),cyan=new T.MeshBasicMaterial({color:0x3dd9f3}),orange=new T.MeshBasicMaterial({color:0xff8b44}),dim=new T.MeshBasicMaterial({color:0x123444});
-  this.scene.fog.density=sky?.0025:city?.0055:.007;if(s.levelMap){buildCampaignWorld(this,s,{black,steel,cyan,orange,dim})}else{const ground=this.material(refuge?0x8c9da4:tank?0x3b4652:0x617d90,{map:this.circuitTexture(),roughness:.8,metalness:.1});this.box(b.x*2+2,.5,b.z*2+2,ground,0,-.3,0);this.box(b.x*2+8,2,b.z*2+8,black,0,-1.5,0);
+  this.scene.fog.density=sky?.0025:city?.0055:.007;if(s.levelMap){buildCampaignWorld(this,s,{black,steel,cyan,orange,dim})}else{const ground=this.material(refuge?0x8c9da4:tank?0x3b4652:0x617d90,{map:this.circuitTexture(),roughness:.8,metalness:.1});if(!sky){this.box(b.x*2+2,.5,b.z*2+2,ground,0,-.3,0);this.box(b.x*2+8,2,b.z*2+8,black,0,-1.5,0)}
   for(const side of[-1,1]){this.box(1.3,cycle?4:2.8,b.z*2+3,black,side*(b.x+1),cycle?2:1.4,0);this.box(.07,.1,b.z*2,cyan,side*b.x,.15,0);this.box(.07,.08,b.z*2,dim,side*b.x,cycle?4:2.8,0);this.box(b.x*2+3,3,1.3,black,0,1.5,side*(b.z+1));this.box(b.x*2,.1,.07,cycle?orange:cyan,0,.15,side*b.z)}
   if(s.chapter===0){
    for(const o of coverOf(s)){this.box(o.w*2,6,o.d*2,black,o.x,3,o.z);this.box(o.w*2+.15,.25,o.d*2+.15,steel,o.x,6,o.z);for(const side of[-1,1]){this.box(.04,5.4,.06,cyan,o.x+side*(o.w-.15),3,o.z+o.d+.03);this.box(o.w*1.6,.04,.04,dim,o.x,4.8,o.z+side*(o.d+.03))}this.box(o.w,.06,o.d,glass,o.x,.04,o.z)}
    for(const side of[-1,1]){for(let i=0;i<9;i++){this.box(.7,.13,2.8,dim,side*28,.02,-32+i*8);this.box(.05,3.8,.05,cyan,side*33,2,-34+i*8)}this.box(1.8,.25,64,steel,side*31,.12,0)}
    const ally=programModel(COLORS.white);ally.position.set(-27,0,27);ally.rotation.y=1;this.root.add(ally);this.ally=ally;this.add(new T.RingGeometry(.8,.85,40),new T.MeshBasicMaterial({color:COLORS.white,side:T.DoubleSide}),-27,.025,27).rotation.x=-Math.PI/2;
   }else if(cycle){
+   if(s.chapter===7){
+    const sign=this.textPanel('07 / CHAMPION EXIT',16,1.6);sign.position.set(0,9,-58);this.root.add(sign);
+    for(let i=-80;i<=80;i+=10){this.box(.065,.02,130,i%20===0?cyan:dim,i,.015,0)}
+    for(let i=-60;i<=60;i+=10){this.box(176,.02,.065,i%20===0?cyan:dim,0,.016,i)}
+   }
    for(let x=-60;x<=60;x+=30)for(let z=-50;z<=50;z+=25){this.box(.035,.012,20,dim,x,.012,z);this.box(20,.012,.035,dim,x,.012,z)}
    for(const side of[-1,1])for(let i=0;i<8;i++){const g=new T.Group();g.position.set(side*98,0,-58+i*17);this.root.add(g);this.box(5,12,3,black,0,6,0,g);this.box(.08,10,.08,orange,-side*2.5,6,1.55,g);this.box(12,.8,3,black,-side*5,12,0,g)}
   }
@@ -52,7 +57,12 @@ export class GridView{
  update(s,dt,{yaw,pitch,attract=false,look=false,paused=false,cinematic=null}={}){
   const cameraDt=dt;if(paused)dt=0;
   if(s.chapter!==this.chapter||!!s.onFoot!==this.onFoot)this.build(s);this.time+=dt;const p=s.player;
-  for(const unit of[p,...s.enemies,...s.citizens]){let g=this.units.get(unit.id);if(!unit.alive){if(g){this.units.delete(unit.id);if(g.userData.health)g.userData.health.visible=false;if(g.userData.windup)g.userData.windup.visible=false;this.fallen.push({g,age:0,chapter:s.chapter})}continue}if(!g){const civic=unit.type==='citizen'||unit.type==='mara';g=unit.type==='bike'?cycleModel(COLORS.orange):unit.type==='tank'?tankModel(COLORS.orange):unit.type==='jet'?jetModel(COLORS.orange):unit.type==='power'?powerModel():programModel(civic?(unit.type==='mara'?COLORS.white:COLORS.violet):unit.type==='sentinel'?COLORS.red:COLORS.orange,{heavy:unit.type==='sentinel',frame:unit.type==='mara'?'female':'male',helmet:unit.type!=='mara'});g.userData.kind=unit.type==='bike'?'cycle':unit.type==='tank'?'tank':unit.type==='jet'?'jet':unit.type==='power'?'power':'program';this.root.add(g);this.units.set(unit.id,g);if(unit.type!=='bike'&&!civic){const bar=this.add(new T.PlaneGeometry(1.2,.065),new T.MeshBasicMaterial({color:COLORS.orange,depthTest:false}),0,unit.type==='tank'||unit.type==='power'?3.4:2.4,0,g);g.userData.health=bar;const ring=this.add(new T.RingGeometry(.65,.75,32),new T.MeshBasicMaterial({color:0xff6c38,side:T.DoubleSide,transparent:true,opacity:.65,depthWrite:false}),0,.06,0,g);ring.rotation.x=-Math.PI/2;g.userData.windup=ring}if(s.chapter===4&&!civic){const cone=this.add(new T.CircleGeometry(22,32,-Math.PI/2-.66,1.32),new T.MeshBasicMaterial({color:0xff9c57,transparent:true,opacity:.06,side:T.DoubleSide,depthWrite:false}),0,.035,0,g);cone.rotation.x=-Math.PI/2;g.userData.sight=cone}}
+  if(this.argonBridge)this.argonBridge.visible=s.argonStage>=2||s.profile.cleared;
+  if(this.bridgeGate)this.bridgeGate.visible=s.argonStage<2&&!s.profile.cleared;
+  if(this.argonConsoles)this.argonConsoles.forEach((g,i)=>{g.visible=i===s.argonStage&&!(s.chapter===6&&s.profile.cleared)&&!(s.chapter===4&&s.relayHacked)});
+  if(this.scanBeam)this.scanBeam.visible=s.argonStage<2;
+
+  for(const unit of[p,...s.enemies,...s.citizens]){let g=this.units.get(unit.id);if(!unit.alive){if(g){this.units.delete(unit.id);if(g.userData.health)g.userData.health.visible=false;if(g.userData.windup)g.userData.windup.visible=false;this.fallen.push({g,age:0,chapter:s.chapter})}continue}if(!g){const civic=unit.type==='citizen'||unit.type==='mara';g=unit.type==='bike'?cycleModel(COLORS.orange):unit.type==='tank'?tankModel(COLORS.orange):unit.type==='jet'?jetModel(COLORS.orange):unit.type==='power'?powerModel():programModel(civic?(unit.type==='mara'?COLORS.white:COLORS.violet):unit.type==='sentinel'?COLORS.red:COLORS.orange,{heavy:unit.type==='sentinel',frame:unit.type==='mara'||civic&&Number(unit.id.at(-1))%2===0?'female':'male',helmet:!civic});g.userData.kind=unit.type==='bike'?'cycle':unit.type==='tank'?'tank':unit.type==='jet'?'jet':unit.type==='power'?'power':'program';this.root.add(g);this.units.set(unit.id,g);if(unit.type!=='bike'&&!civic){const bar=this.add(new T.PlaneGeometry(1.2,.065),new T.MeshBasicMaterial({color:COLORS.orange,depthTest:false}),0,unit.type==='tank'||unit.type==='power'?3.4:2.4,0,g);g.userData.health=bar;const ring=this.add(new T.RingGeometry(.65,.75,32),new T.MeshBasicMaterial({color:0xff6c38,side:T.DoubleSide,transparent:true,opacity:.65,depthWrite:false}),0,.06,0,g);ring.rotation.x=-Math.PI/2;g.userData.windup=ring}if(s.chapter===4&&!civic){const cone=this.add(new T.CircleGeometry(22,32,-Math.PI/2-.66,1.32),new T.MeshBasicMaterial({color:0xff9c57,transparent:true,opacity:.06,side:T.DoubleSide,depthWrite:false}),0,.035,0,g);cone.rotation.x=-Math.PI/2;g.userData.sight=cone}}
    const before=g.userData.previous,elapsed=Math.max(dt,.001),wx=before?(unit.x-before.x)/elapsed:0,wz=before?(unit.z-before.z)/elapsed:0,speed=Math.hypot(wx,wz),turn=before?wrap(unit.yaw-before.yaw)/elapsed:0;g.position.set(unit.x,unit.y||0,unit.z);g.visible=unit.type!=='citizen'||Math.hypot(unit.x-p.x,unit.z-p.z)<68;
    if(!before)g.rotation.y=unit.yaw;else if(g.userData.kind!=='program')g.rotation.y=unit.yaw;else g.rotation.y+=wrap(unit.yaw-g.rotation.y)*(1-Math.exp(-dt*20));g.userData.previous={x:unit.x,z:unit.z,yaw:unit.yaw};
    if(g.userData.kind==='cycle')animateCycle(g,dt,{speed:unit.speed,turn,boosting:unit.boosting,braking:unit.speed<14,clip:unit.anim,age:unit.animAge,catchAge:unit.catchAge,thrown:s.discs.some(d=>d.owner===unit.id)});
@@ -68,7 +78,21 @@ export class GridView{
   for(const[id,g]of this.discs)if(!s.discs.some(d=>d.id===id)){g.removeFromParent();this.disposeObject(g);this.discs.delete(id)}for(const d of s.discs){let g=this.discs.get(d.id);if(!g){g=discModel(d.owner==='player'?this.color:COLORS.orange);this.root.add(g);this.discs.set(d.id,g)}g.position.set(d.x,d.height||1.37,d.z);g.rotation.set(Math.PI/2,0,this.time*16)}
   for(const[id,g]of this.shells)if(!s.shells.some(q=>q.id===id)){g.removeFromParent();this.disposeObject(g);this.shells.delete(id)}for(const shell of s.shells){let g=this.shells.get(shell.id);if(!g){g=this.add(new T.CapsuleGeometry(.09,.65,3,8),new T.MeshBasicMaterial({color:shell.owner==='player'?this.color:COLORS.orange}));this.shells.set(shell.id,g)}g.position.set(shell.x,2.05,shell.z);g.rotation.set(Math.PI/2,0,-Math.atan2(shell.dx,shell.dz))}
   for(const[id,g]of this.orbs)if(!s.pickups.some(d=>d.id===id)){g.removeFromParent();this.disposeObject(g);this.orbs.delete(id)}for(const d of s.pickups){let g=this.orbs.get(d.id);if(!g){g=this.add(new T.OctahedronGeometry(.27),new T.MeshBasicMaterial({color:0xc4fcff}));this.orbs.set(d.id,g)}g.position.set(d.x,.6+Math.sin(this.time*3)*.12,d.z);g.rotation.y=this.time}
-  const dummy=new T.Object3D(),color=new T.Color();let count=0;for(const t of s.trails){const dx=t.b.x-t.a.x,dz=t.b.z-t.a.z;dummy.position.set((t.a.x+t.b.x)/2,.9,(t.a.z+t.b.z)/2);dummy.rotation.set(0,Math.atan2(dx,dz),0);dummy.scale.set(1,1,Math.hypot(dx,dz)+.03);dummy.updateMatrix();this.trailWalls.setMatrixAt(count,dummy.matrix);dummy.position.y=1.77;dummy.updateMatrix();this.trailEdges.setMatrixAt(count,dummy.matrix);color.set(t.owner==='player'?this.color:COLORS.orange).multiplyScalar(clamp((16-(s.time-t.born))/3,0,1));this.trailWalls.setColorAt(count,color);this.trailEdges.setColorAt(count,color);count++}this.trailWalls.count=this.trailEdges.count=count;this.trailWalls.instanceMatrix.needsUpdate=this.trailEdges.instanceMatrix.needsUpdate=true;if(count)this.trailWalls.instanceColor.needsUpdate=this.trailEdges.instanceColor.needsUpdate=true;
+  const dummy=new T.Object3D(),color=new T.Color();let count=0;
+  for(const t of s.trails){
+   const dx=t.b.x-t.a.x,dz=t.b.z-t.a.z,air=t.a.y!==undefined,dy=air?t.b.y-t.a.y:0;
+   const height=air?(t.a.y+t.b.y)/2:.9,length=Math.hypot(dx,dy,dz);
+   dummy.position.set((t.a.x+t.b.x)/2,height,(t.a.z+t.b.z)/2);
+   dummy.rotation.set(-Math.atan2(dy,Math.hypot(dx,dz)),Math.atan2(dx,dz),0,'YXZ');
+   dummy.scale.set(1,air?2.25:1,length+.03);dummy.updateMatrix();
+   this.trailWalls.setMatrixAt(count,dummy.matrix);
+   dummy.position.y+=air?1.9:.87;dummy.updateMatrix();this.trailEdges.setMatrixAt(count,dummy.matrix);
+   color.set(t.owner==='player'?this.color:COLORS.orange).multiplyScalar(clamp(((air?8:16)-(s.time-t.born))/2,0,1));
+   this.trailWalls.setColorAt(count,color);this.trailEdges.setColorAt(count++,color);
+  }
+  this.trailWalls.count=this.trailEdges.count=count;
+  this.trailWalls.instanceMatrix.needsUpdate=this.trailEdges.instanceMatrix.needsUpdate=true;
+  if(count)this.trailWalls.instanceColor.needsUpdate=this.trailEdges.instanceColor.needsUpdate=true;
   for(const fx of this.fx){fx.age+=dt;const t=fx.age/fx.life;fx.g.material.opacity=(fx.smoke?.28:1)*Math.max(0,1-t);if(fx.ring)fx.g.scale.setScalar(1+t*fx.size);else if(fx.slash)fx.g.scale.setScalar(.9+t*.3);else{fx.particles.forEach((q,i)=>{q.x+=q.dx*dt;q.y+=q.dy*dt;q.z+=q.dz*dt;q.dy-=(fx.smoke?-.4:12)*dt;dummy.position.set(q.x,Math.max(.05,q.y),q.z);dummy.rotation.set(t*8+i,t*5+i,0);dummy.scale.setScalar(fx.smoke?.5+t*2:Math.max(.02,1-t));dummy.updateMatrix();fx.g.setMatrixAt(i,dummy.matrix)});fx.g.instanceMatrix.needsUpdate=true}if(t>=1){fx.g.removeFromParent();this.disposeObject(fx.g)}}this.fx=this.fx.filter(f=>f.age<f.life);
   for(const [id,g]of this.bolts)if(!s.bolts.some(b=>b.id===id)){g.removeFromParent();this.disposeObject(g);this.bolts.delete(id)}for(const b of s.bolts){let g=this.bolts.get(b.id);if(!g){g=this.add(new T.CapsuleGeometry(.075,.95,3,8),new T.MeshBasicMaterial({color:b.owner==='player'?this.color:COLORS.orange}));this.bolts.set(b.id,g)}g.position.set(b.x,b.y,b.z);g.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),new T.Vector3(b.dx,b.dy,b.dz))}
   for(const core of s.cores){const g=this.cores.get(core.id);if(g){g.visible=core.alive;g.rotation.y=this.time*.3;g.userData.inner.rotation.z=this.time*.6;g.userData.health.scale.x=core.hp/core.maxHp;g.userData.health.quaternion.copy(this.camera.quaternion).premultiply(g.quaternion.clone().invert())}}
@@ -87,7 +111,21 @@ export class GridView{
  }
  project(point){const p=new T.Vector3(point.x,point.y??1.2,point.z).project(this.camera);return{x:clamp((p.x+1)*50,6,94),y:clamp((1-p.y)*50,15,82),visible:p.z>-1&&p.z<1&&Math.abs(p.x)<1&&Math.abs(p.y)<1}}
  pick(s,x,y){const r=this.canvas.getBoundingClientRect(),sx=(x-r.x)/r.width*100,sy=(y-r.y)/r.height*100;return s.enemies.filter(e=>e.alive).map(e=>({e,q:this.project({x:e.x,y:(e.y||0)+1.3,z:e.z})})).filter(t=>t.q.visible&&Math.hypot((t.q.x-sx)*r.width/100,(t.q.y-sy)*r.height/100)<45).sort((a,b)=>Math.hypot(a.q.x-sx,a.q.y-sy)-Math.hypot(b.q.x-sx,b.q.y-sy))[0]?.e||null}
- textPanel(text,width=5,height=1){const c=document.createElement('canvas');c.width=512;c.height=128;const x=c.getContext('2d');x.fillStyle='#06111b';x.fillRect(0,0,512,128);x.fillStyle='#9feaff';x.font='bold 29px monospace';x.textAlign='center';x.textBaseline='middle';x.fillText(text,256,64,490);const texture=new T.CanvasTexture(c);texture.colorSpace=T.SRGBColorSpace;return new T.Mesh(new T.PlaneGeometry(width,height),new T.MeshBasicMaterial({map:texture}))}
+ textPanel(text,width=5,height=1){
+  const canvas=document.createElement('canvas');
+  canvas.width=1536;canvas.height=Math.round(canvas.width*height/width);
+  const ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height;
+  ctx.fillStyle='#040c16';ctx.fillRect(0,0,w,h);
+  ctx.fillStyle='#25687e';ctx.fillRect(0,0,w,h*.045);ctx.fillRect(0,h*.94,w,h*.06);
+  ctx.fillStyle='#7de8fc';
+  for(let i=0;i<3;i++){ctx.beginPath();ctx.moveTo(h*(.3+i*.24),h*.69);ctx.lineTo(h*(.54+i*.24),h*.31);ctx.lineTo(h*(.63+i*.24),h*.31);ctx.lineTo(h*(.39+i*.24),h*.69);ctx.fill()}
+  ctx.fillStyle='#d1faff';ctx.font='700 '+Math.round(h*.58)+'px monospace';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(text,(w+h)/2,h*.53,w-h*1.5);
+  const texture=new T.CanvasTexture(canvas);texture.colorSpace=T.SRGBColorSpace;
+  texture.anisotropy=Math.min(8,this.renderer.capabilities.getMaxAnisotropy());
+  return new T.Mesh(new T.PlaneGeometry(width,height),new T.MeshBasicMaterial({map:texture,toneMapped:false}));
+ }
  buildCity(s,black,steel,cyan,dim){
   const road=this.material(0x172933,{roughness:.9}),walk=this.material(0x354c57,{roughness:.85}),white=new T.MeshBasicMaterial({color:0x9ddde8}),orange=new T.MeshBasicMaterial({color:0xc16c42});
   for(const x of[0,-37,37]){this.box(x?12:16,.025,164,road,x,-.06,0);for(const side of[-1,1])this.box(.08,.045,164,dim,x+side*(x?6:8),.035,0)}for(const z of[47,4,-40,-76]){this.box(112,.025,11,road,0,-.055,z);for(const side of[-1,1])this.box(112,.04,.06,dim,0,.04,z+side*5.5)}
@@ -95,11 +133,51 @@ export class GridView{
   for(const [i,o]of CITY_BUILDINGS.entries()){this.box(o.w*2,o.h,o.d*2,black,o.x,o.h/2,o.z);this.box(o.w*2+.05,.4,o.d*2+.05,steel,o.x,o.h,o.z);for(const side of[-1,1]){this.box(.07,o.h,.06,cyan,o.x+side*(o.w-.2),o.h/2,o.z+o.d+.04);this.box(o.w*2,.06,.06,dim,o.x,4.2,o.z+side*(o.d+.04));for(let y=6;y<o.h-2;y+=3.2)for(let x=-o.w+2;x<o.w-1;x+=2.2){dummy.position.set(o.x+x,y,o.z+side*(o.d+.05));dummy.rotation.set(0,0,0);dummy.updateMatrix();windows.setMatrixAt(index++,dummy.matrix)}}
    this.box(o.w*1.6,2.8,.08,steel,o.x,1.4,o.z+o.d+.055);const sign=this.textPanel(i===0?'CIVIC / ARGON':i%3===0?'MEMORY SERVICES':i%2?'IDENTITY EXCHANGE':'TRANSIT',Math.min(8,o.w*1.6),.8);sign.position.set(o.x,3.1,o.z+o.d+.11);this.root.add(sign);
   }windows.count=index;this.root.add(windows);
-  for(const o of coverOf(s).filter(o=>!o.building)){this.box(o.w*2,o.h,o.d*2,steel,o.x,o.h/2,o.z);this.box(o.w*2,.05,.05,cyan,o.x,o.h-.15,o.z+o.d+.03)}
+  for(const o of coverOf(s).filter(o=>!o.building&&!(s.chapter===6&&o.x===0&&o.z===7))){this.box(o.w*2,o.h,o.d*2,steel,o.x,o.h/2,o.z);this.box(o.w*2,.05,.05,cyan,o.x,o.h-.15,o.z+o.d+.03)}
+  for(const [z,y] of [[63,13],[-19,17],[-59,24]]){
+   this.box(21,.45,3.3,steel,0,y,z);
+   for(const edge of[-1,1]){
+    this.box(21,.07,.1,cyan,0,y+.3,z+edge*1.65);
+    this.box(21,.065,.1,dim,0,y+1.1,z+edge*1.65);
+    for(const x of[-9,-5,0,5,9])this.box(.08,.85,.08,cyan,x,y+.68,z+edge*1.65);
+   }
+  }
+  this.argonConsoles=(s.chapter===6?ARGON_RETURN:ARGON_ACCESS).map(q=>{
+   const g=new T.Group();g.position.set(q.x,q.y||0,q.z);this.root.add(g);
+   const sign=this.textPanel(q.label,5,.7);sign.position.set(0,2,-1.4);g.add(sign);
+   const ring=this.add(new T.RingGeometry(1.35,1.47,48),cyan,0,.08,0,g);
+   ring.rotation.x=-Math.PI/2;
+   return g;
+  });
+  if(s.chapter===6){
+   const gate=this.bridgeGate=new T.Group();gate.position.set(0,0,7);this.root.add(gate);
+   const locked=new T.MeshBasicMaterial({color:0xff7442,transparent:true,opacity:.28});
+   this.box(6,3.1,.12,locked,0,1.55,0,gate);
+   for(const x of[-3,3])this.box(.22,3.6,.36,locked,x,1.8,0,gate);
+   const bridge=this.argonBridge=new T.Group();this.root.add(bridge);
+   const deck=new T.MeshBasicMaterial({color:0x2084a2,transparent:true,opacity:.48,side:T.DoubleSide});
+   for(let i=1;i<ARGON_BRIDGE.length;i++){
+    const a=ARGON_BRIDGE[i-1],b=ARGON_BRIDGE[i],length=Math.hypot(b.z-a.z,b.y-a.y);
+    const g=new T.Group();g.position.set(0,(a.y+b.y)/2-.07,(a.z+b.z)/2);g.rotation.x=Math.atan2(b.y-a.y,a.z-b.z);bridge.add(g);
+    this.box(6.3,.14,length,deck,0,0,0,g);
+    for(const x of[-3.1,3.1]){
+     this.box(.11,.11,length,cyan,x,.09,0,g);this.box(.06,.08,length,cyan,x,.96,0,g);
+     for(let z=-length/2+.5;z<length/2;z+=3)this.box(.07,.92,.08,cyan,x,.5,z,g);
+    }
+    for(let z=-length/2+.5;z<length/2;z+=1.5)this.box(6,.02,.035,cyan,0,.075,z,g);
+   }
+  }
   const terminal=this.textPanel('CIVIC RELAY',3.4,.7);terminal.position.set(-38,1.7,-41.1);this.root.add(terminal);const screen=this.add(new T.PlaneGeometry(2,.55),white,-38,1.25,-41.15);screen.rotation.x=-.4;
   for(const side of[-1,1]){this.box(.1,3,.1,white,SKYPORT.x+side*5,1.5,SKYPORT.z-1);this.box(2,.03,.3,walk,side*6,.03,61)}const pad=this.add(new T.RingGeometry(4.8,4.94,64),white,SKYPORT.x,.055,SKYPORT.z);pad.rotation.x=-Math.PI/2;const sign=this.textPanel('SKYPORT / 07',7,.9);sign.position.set(SKYPORT.x,3.2,SKYPORT.z-5);this.root.add(sign);const docked=jetModel(COLORS.white);docked.position.set(SKYPORT.x,1.15,SKYPORT.z-1);docked.scale.setScalar(.72);docked.rotation.y=Math.PI;this.root.add(docked);
  }
  buildSky(s,black,steel,cyan){
+  const water=this.material(0x082333,{roughness:.32,metalness:.62});
+  this.box(850,.8,850,water,0,-2,0);
+  const ripple=new T.MeshBasicMaterial({color:0x1a4b64});
+  for(let i=0;i<88;i++){
+   const x=(i*113)%430-215,z=(i*83)%500-250;
+   this.box(4+i%14,.015,.08,i%8===0?cyan:ripple,x,-1.55,z);
+  }
   if(s.mode==='story')buildFlightChannels(this,steel,cyan);
   for(const o of SKY_TOWERS){this.box(o.w*2,o.h,o.d*2,black,o.x,o.h/2,o.z);for(const side of[-1,1])this.box(.10,o.h,.08,cyan,o.x+side*(o.w-.2),o.h/2,o.z+o.d+.04);this.box(o.w*2,.2,o.d*2,steel,o.x,o.h,o.z)}
   for(const core of s.cores){const g=new T.Group();g.position.set(core.x,core.y,core.z);this.root.add(g);this.box(2,11,2,steel,0,0,0,g);const inner=this.add(new T.OctahedronGeometry(3.2),new T.MeshBasicMaterial({color:0xff9b5e}),0,0,0,g);g.userData.inner=inner;for(const rotation of[0,Math.PI/2]){const ring=this.add(new T.TorusGeometry(4.8,.12,6,48),new T.MeshBasicMaterial({color:0xff9c5a}),0,0,0,g);ring.rotation.y=rotation}const health=this.add(new T.PlaneGeometry(5,.2),new T.MeshBasicMaterial({color:0xffad7d,depthTest:false}),0,7,0,g);g.userData.health=health;this.cores.set(core.id,g)}

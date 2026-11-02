@@ -1,5 +1,5 @@
 import * as T from '../vendor/three.module.js';
-import {CLIPS,gaitFrequency,samplePose,legAngles} from './motion.js?v=6';
+import {CLIPS,gaitFrequency,samplePose,legAngles} from './motion.js?v=7';
 export const COLORS={cyan:0x67e9ff,white:0xe6f7ff,violet:0xc39cff,orange:0xff873c,red:0xff424d};
 const metal=(color=0x080c12)=>new T.MeshStandardMaterial({color,metalness:.75,roughness:.27});
 const light=color=>new T.MeshBasicMaterial({color});
@@ -19,7 +19,7 @@ function surface(rings,segments=28){
 function circuit(g,mat,points,r=.012){return mesh(g,new T.TubeGeometry(new T.CatmullRomCurve3(points.map(p=>new T.Vector3(...p))),20,r,5,false),mat)}
 function oval(g,mat,r,x,y,z,sx,sy,sz){const m=sphere(g,mat,r,x,y,z);m.scale.set(sx,sy,sz);return m}
 export function programModel(color=COLORS.cyan,{heavy=false,rider=false,frame='male',helmet=true}={}){
- const female=frame==='female',g=new T.Group(),suit=new T.MeshStandardMaterial({color:0x182530,roughness:.56,metalness:.3}),armor=new T.MeshStandardMaterial({color:heavy?0x3b434b:0x354450,roughness:.46,metalness:.4}),edge=metal(0x526572),glow=light(color),rubber=metal(0x080e16),face=new T.MeshStandardMaterial({color:female?0xd4b4a0:0xbca78e,roughness:.68,metalness:0}),hair=new T.MeshStandardMaterial({color:0x10161c,roughness:.9,metalness:0}),rig={};
+ const female=frame==='female',g=new T.Group(),suit=new T.MeshStandardMaterial({color:0x111b29,roughness:.47,metalness:.3}),armor=new T.MeshStandardMaterial({color:heavy?0x3b434b:0x283847,roughness:.37,metalness:.4}),edge=metal(0x526572),glow=light(color),rubber=metal(0x080e16),face=new T.MeshStandardMaterial({color:female?0xd4b4a0:0xbca78e,roughness:.68,metalness:0}),hair=new T.MeshStandardMaterial({color:0x10161c,roughness:.9,metalness:0}),rig={};
  const hips=new T.Group();hips.position.y=1.03;g.add(hips);rig.hips=hips;
  const pelvis=mesh(hips,surface([[-.12,.19,.12],[0,.245,.15],[.1,female?.21:.23,.14],[.16,.18,.13]]),suit);pelvis.scale.x=heavy?1.25:1;
  const torso=new T.Group();hips.add(torso);rig.torso=torso;
@@ -29,10 +29,14 @@ export function programModel(color=COLORS.cyan,{heavy=false,rider=false,frame='m
   circuit(torso,glow,[[side*.08,.67,.145],[side*.21,.63,.15],[side*(female?.225:.27),.51,.15],[side*.17,.37,.16],[side*(female?.135:.17),.22,.137]]);
   circuit(torso,edge,[[side*.10,.37,.151],[side*.08,.27,.135],[side*.09,.17,.14]],.007);
   circuit(torso,glow,[[side*.20,.13,-.12],[side*.23,.35,-.14],[side*.22,.58,-.14],[side*.1,.66,-.12]],.009);
+  circuit(torso,glow,[[side*.055,.18,-.15],[side*.10,.26,-.18],[side*.14,.31,-.17]],.009);
+  circuit(torso,edge,[[side*.13,.57,.194],[side*.18,.54,.197],[side*.19,.46,.192]],.009);
   const belt=box(torso,armor,.12,.06,.28,side*.14,.075,0);belt.rotation.z=side*.08;
  }
  for(let i=0;i<3;i++){const plate=mesh(torso,surface([[.13+i*.068,.09,.022],[.17+i*.068,.10,.025],[.19+i*.068,.08,.01]],16),armor,0,0,.133);}
  box(torso,glow,.055,.025,.017,0,.09,.157);
+ const socket=mesh(torso,new T.TorusGeometry(.205,.023,8,32),edge,0,.48,-.158);
+ socket.scale.set(1,1,.65);
  const back=discModel(color);back.scale.setScalar(.73);back.position.set(0,.48,-.18);torso.add(back);rig.backDisc=back;
  rod(torso,rubber,.077,.14,0,.77,0);const collar=mesh(torso,new T.TorusGeometry(.082,.014,8,24),armor,0,.74,0);collar.rotation.x=Math.PI/2;
  const head=new T.Group();head.position.y=.91;torso.add(head);rig.head=head;
@@ -45,7 +49,10 @@ export function programModel(color=COLORS.cyan,{heavy=false,rider=false,frame='m
   circuit(head,edge,[[-.12,-.05,.10],[-.09,-.12,.115],[0,-.15,.10],[.09,-.12,.115],[.12,-.05,.10]],.012);
   for(const side of[-1,1]){oval(head,rubber,.067,side*.14,.018,0,.32,1,1);circuit(head,glow,[[side*.15,-.055,-.02],[side*.155,.035,-.035],[side*.13,.125,-.025]],.009)}
  }else{
-  oval(head,hair,.146,0,.10,-.025,1, .77, .94);if(female){for(const side of[-1,1])oval(head,hair,.105,side*.125,-.04,-.04,.43,2.1,.85);circuit(head,hair,[[-.12,.14,.05],[-.075,.175,.085],[.005,.17,.115],[.075,.12,.12]],.028)}
+  oval(head,hair,.146,0,.10,-.025,1, .77, .94);if(female){for(const side of[-1,1]){
+   oval(head,hair,.105,side*.121,-.025,-.055,.40,side<0?2.05:1.45,.83);
+   circuit(head,edge,[[side*.07,.176,-.055],[side*.124,.122,-.095],[side*.136,.014,-.10],[side*.122,-.112,-.087]],.005);
+  }circuit(head,hair,[[-.12,.14,.05],[-.075,.175,.085],[.005,.17,.115],[.075,.12,.12]],.028)}
   rig.eyes=[];for(const side of[-1,1]){oval(head,face,.035,side*.142,-.01,.008,.4,1,.65);const eye=new T.Group();eye.position.set(side*.056,.025,.13);head.add(eye);oval(eye,new T.MeshStandardMaterial({color:0xcbd3d4,roughness:.65}),.023,0,0,0,1,.31,.42);oval(eye,rubber,.009,0,0,.012,.85,1,.35);rig.eyes.push(eye);circuit(head,hair,[[side*.025,.057,.125],[side*.057,.068,.12],[side*.08,.058,.102]],.006)}
   oval(head,face,.028,0,-.015,.137,.55,1.25,1.1);oval(head,new T.MeshStandardMaterial({color:0x986a66,roughness:.8}),.027,0,-.078,.122,1.12,.23,.35);
  }
@@ -56,6 +63,7 @@ export function programModel(color=COLORS.cyan,{heavy=false,rider=false,frame='m
   const elbow=new T.Group();elbow.position.y=-.325;shoulder.add(elbow);oval(elbow,rubber,.059,0,0,0,1,.9,1);
   mesh(elbow,surface([[-.29,.043,.045],[-.22,.065,.063],[-.1,.073,.067],[-.045,.06,.055]]),armor);
   circuit(elbow,glow,[[side*.025,-.05,.062],[side*.038,-.13,.068],[side*.025,-.25,.05]],.009);
+  circuit(elbow,edge,[[side*.047,-.10,-.048],[side*.044,-.19,-.056],[side*.028,-.27,-.039]],.008);
   const hand=new T.Group();hand.position.set(0,-.31,.014);elbow.add(hand);oval(hand,suit,.055,0,-.027,0,.82,1.25,.55);
   const fingers=[];for(let f=0;f<4;f++){const pivot=new T.Group();pivot.position.set((f-1.5)*.023,-.060,.012);hand.add(pivot);mesh(pivot,new T.CapsuleGeometry(.012,.045,3,7),rubber,0,-.025,0);pivot.rotation.x=-.28;fingers.push(pivot)}rig['fingers'+suffix]=fingers;const thumb=mesh(hand,new T.CapsuleGeometry(.017,.035,3,7),suit,-side*.052,-.028,.025);thumb.rotation.z=side*.55;
   shoulder.rotation.z=side*.09;elbow.rotation.x=-.15;rig['arm'+suffix]=shoulder;rig['elbow'+suffix]=elbow;rig['hand'+suffix]=hand;

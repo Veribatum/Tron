@@ -19,7 +19,21 @@ export const CIVIC_ROUTES=[
  [{x:-6,z:-43},{x:-32,z:-43},{x:-32,z:-73},{x:-6,z:-73}],
  [{x:32,z:-47},{x:32,z:-72},{x:42,z:-72},{x:42,z:-47}]
 ];
-export const SKY_TOWERS=[{x:-130,z:-125,w:12,d:16,h:58},{x:129,z:-133,w:13,d:18,h:67},{x:-133,z:0,w:11,d:15,h:49},{x:130,z:19,w:12,d:15,h:54},{x:-87,z:105,w:13,d:13,h:41},{x:87,z:104,w:12,d:12,h:45}];
+export const SKY_TOWERS=[{x:-24,z:63,w:7,d:11,h:38},{x:35,z:15,w:9,d:13,h:48},{x:-28,z:-91,w:8,d:9,h:65},{x:36,z:-48,w:8,d:12,h:56},{x:101,z:-39,w:9,d:12,h:37},{x:-96,z:-79,w:9,d:10,h:53},{x:-130,z:-125,w:12,d:16,h:58},{x:129,z:-133,w:13,d:18,h:67},{x:-133,z:0,w:11,d:15,h:49},{x:130,z:19,w:12,d:15,h:54},{x:-87,z:105,w:13,d:13,h:41},{x:87,z:104,w:12,d:12,h:45}];
 export const SKY_CORES=[{x:-64,y:36,z:-35},{x:65,y:58,z:-103},{x:0,y:43,z:-169}];
 export const SKY_EXIT={x:0,y:43,z:176};
-export const CHAPTERS=['ARCHIVE / THE UNLISTED','FREIGHT LINE 07','THE DRY AQUEDUCT','WHITE SIGNAL','ARGON / SILENT DISTRICT','THE MEMORY LATTICE','ARGON / FIRST FREE CYCLE'];
+export const CHAPTERS=['ARCHIVE / THE UNLISTED','FREIGHT LINE 07','THE DRY AQUEDUCT','WHITE SIGNAL','ARGON / SILENT DISTRICT','THE MEMORY LATTICE','ARGON / GROUND RESERVE','DEPOT 07 / LIGHT CYCLE GRID'];
+
+export const ARGON_ACCESS=[
+ {x:36,z:45,label:'TRANSIT TAP',action:'SPOOF',objective:'Spoof a transit identity at the east checkpoint',radio:'MARA: You have a transit identity. Take the cross street to the west alley and blind the Recognizer.'},
+ {x:-37,z:5,label:'SCANNER OVERRIDE',action:'JAM',objective:'Jam the Recognizer from the west service alley',radio:'MARA: Scanner dark. Get the root key from the civic relay before the patrols regroup.'}
+];
+export const ARGON_RETURN=[
+ {x:34,z:-70,label:'SKYPORT / SERVICE LIFT',action:'OPEN',objective:'Open the service lift and find the Warden’s ground reserve',radio:'ECHO: The array is cut off. The reserve still has the order. Its captain carries the bridge cipher.'},
+ {x:0,z:8,label:'BRIDGE EMITTER',action:'EXTEND',objective:'Derezz the reserve captain and use his cipher at the bridge emitter',radio:'ECHO: Bridge online. Take the upper span and pull the emergency isolation switch.'},
+ {x:0,y:9,z:-19,label:'ISOLATION SWITCH',action:'ISOLATE',objective:'Climb the light bridge and isolate the ground reserve',radio:'MARA: The reserve is off the network. Cross the span and use Flynn’s key at the registry.'},
+ {x:-37,z:-72,label:'FREE REGISTRY',action:'RESTORE',objective:'Restore Argon’s registry with Flynn’s root key'}
+];
+export const ARGON_BRIDGE=[
+ {z:8,y:0},{z:-13,y:9},{z:-25,y:9},{z:-46,y:0}
+];

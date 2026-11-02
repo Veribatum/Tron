@@ -2,15 +2,15 @@
 
 An independent, unofficial TRON-inspired browser game. Third-person disc combat, light cycles, light tanks, a city infiltration and controllable light jets. Buildless WebGL with local assets and phone/desktop controls.
 
-## The Last Free Address · 0.6
+## The Last Free Address · 0.7
 
 The campaign opens with an authored escape level: Detention 07 → Processing Hall → Coolant Spine → Reactor Concourse → Archive Stacks → Freight Apron → Vehicle Bay. Rooms have connected floors, solid boundaries, ceilings, props and doorways. Restore service power, recover Flynn’s unlisted address from the transit manifest, and open the freight garage. Encounters activate along the route; clearing a wave does not advance the campaign. Two optional identity caches reward exploring side rooms.
 
-Board the courier cycle in the garage. Freight Line 07 is a 574 m winding elevated highway, with viaducts, junction signs, checkpoints and pursuing riders. Reach Maintenance Depot 07, park the cycle, walk into its armor bay, and board a visible maintenance tank. The Warden erased the bridge beyond the depot, so the tank must use the dry aqueduct below it.
+Board the courier cycle in the garage. Freight Line 07 is a 574 m winding elevated highway, with viaducts, junction signs, checkpoints and pursuing riders. At Depot 07, park the courier and win a full Light Cycle Grid match to unlock a siege tank. The Warden erased the bridge beyond the depot, so the tank must use the dry aqueduct below it.
 
 The aqueduct follows a 660 m canyon route around bends, through cover and security outposts. Destroy two dam power cores with the cannon to open their physical gates. Reach the white signal, leave the tank, and walk through the refuge doorway. Short vehicle scenes and in-game radio dialogue explain the route while play continues.
 
-Flynn’s recording leads into Argon’s streets and service alleys. Recover the civic relay’s root key, board a light jet, and follow aerial memory channels between viaducts to the erasure uplinks. Breaking the array leads to a resolved ending and a district you can explore. Pause → Story so far gives the current reason and objective.
+Flynn’s recording leads into Argon’s streets and service alleys. Spoof a transit identity and jam the Recognizer before accessing the civic relay. Board a light jet and use cannons and colliding light trails to break the erasure uplinks above the Sea of Simulation. Return to Argon, take the reserve captain’s cipher, raise the light bridge, and isolate the ground reserve before restoring the registry. Pause → Story so far gives the current reason and objective.
 
 The disc, cycle and tank arenas remain available as separate practice modes. Campaign progression uses authored routes, terminals, discoveries, blockades and boarding points.
 
