@@ -1,7 +1,7 @@
-import {LEVELS,LEVEL_VERSION,CELL,floorContains,floorRoute,roadPoint,nearestRoad,FLIGHT_APPROACH,WARDEN_FLOORS,WARDEN_PERMISSIONS,WARDEN_STAIRS} from './levels.js?v=10';
-import {moveSpire,stairNavigation} from './spire.js?v=10';
-import {CLIPS} from './motion.js?v=10';
-import {CITY_BOUNDS,SKY_BOUNDS,CITY_COVER,CITY_ENTRY,CITY_RELAY,SKYPORT,REFUGE_EXIT,PATROL_ROUTES,CIVIC_ROUTES,SKY_TOWERS,SKY_CORES,SKY_EXIT,ARGON_ACCESS,ARGON_RETURN,ARGON_BRIDGE,ARGON_SERVICE_SPAN,ARGON_SERVICE_CACHE,ARGON_RECOVERY} from './world.js?v=10';
+import {LEVELS,LEVEL_VERSION,CELL,floorContains,floorRoute,roadPoint,nearestRoad,FLIGHT_APPROACH,WARDEN_FLOORS,WARDEN_PERMISSIONS,WARDEN_STAIRS} from './levels.js?v=11';
+import {moveSpire,stairNavigation} from './spire.js?v=11';
+import {CLIPS} from './motion.js?v=11';
+import {CITY_BOUNDS,SKY_BOUNDS,CITY_COVER,CITY_ENTRY,CITY_RELAY,SKYPORT,REFUGE_EXIT,PATROL_ROUTES,CIVIC_ROUTES,SKY_TOWERS,SKY_CORES,SKY_EXIT,ARGON_ACCESS,ARGON_RETURN,ARGON_BRIDGE,ARGON_SERVICE_SPAN,ARGON_SERVICE_CACHE,ARGON_RECOVERY} from './world.js?v=11';
 export {CITY_BOUNDS,SKY_BOUNDS,CITY_COVER,CITY_RELAY,SKYPORT,REFUGE_EXIT,SKY_TOWERS,SKY_EXIT};
 export const VERSION=1;
 export const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -30,13 +30,13 @@ export function rng(seed){let n=seed>>>0;return()=>{n+=0x6d2b79f5;let t=n;t=Math
 export function newProfile(name='RUNNER',color='cyan'){return{name:String(name).trim().slice(0,20)||'RUNNER',color:palette.includes(color)?color:'cyan',frame:'male',helmet:true,checkpoint:0,cleared:false,bestDisc:0,bestCycle:0,bestTank:0,bestJet:0,bestCity:0,storyVersion:4,levelSave:null,seenScenes:[]}}
 export function validProfile(p){return!!p&&typeof p.name==='string'&&p.name.length<=20&&palette.includes(p.color)&&[0,1,2,3,4,5,6,7,8].includes(p.checkpoint)&&typeof p.cleared==='boolean'&&['bestDisc','bestCycle'].every(k=>Number.isFinite(p[k])&&p[k]>=0&&p[k]<1e9)&&(p.frame===undefined||['male','female'].includes(p.frame))&&(p.bestTank===undefined||Number.isFinite(p.bestTank)&&p.bestTank>=0&&p.bestTank<1e9)}
 export function createRun({mode='story',profile=newProfile(),seed=7319}={}){
- const s={mode:['story','disc','cycle','tank','jet','city'].includes(mode)?mode:'story',profile:{...newProfile(),...structuredClone(profile)},seed:seed>>>0,random:rng(seed),chapter:mode==='jet'?5:mode==='city'?4:mode==='tank'?2:mode==='cycle'?1:mode==='story'?profile.checkpoint:0,time:0,score:mode==='story'&&(profile.checkpoint>0||profile.levelSave)&&Number.isFinite(profile.checkpointScore)?profile.checkpointScore:0,kills:0,wave:0,enemies:[],discs:[],shells:[],bolts:[],cores:[],citizens:[],trails:[],pickups:[],events:[],serial:0,combo:0,comboTime:0,finished:false,dead:false,gate:false,waveDelay:0,shake:0};
+ const s={mode:['story','disc','cycle','tank','jet','city','spire'].includes(mode)?mode:'story',profile:{...newProfile(),...structuredClone(profile)},seed:seed>>>0,random:rng(seed),chapter:mode==='spire'?8:mode==='jet'?5:mode==='city'?4:mode==='tank'?2:mode==='cycle'?1:mode==='story'?profile.checkpoint:0,time:0,score:(mode==='spire'||mode==='story'&&(profile.checkpoint>0||profile.levelSave))&&Number.isFinite(profile.checkpointScore)?profile.checkpointScore:0,kills:0,wave:0,enemies:[],discs:[],shells:[],bolts:[],cores:[],citizens:[],trails:[],pickups:[],events:[],serial:0,combo:0,comboTime:0,finished:false,dead:false,gate:false,waveDelay:0,shake:0};
  if(s.mode==='story'&&s.chapter===6&&!(profile.storyVersion>=4)){
   s.profile.cleared=false;
   s.profile.seenScenes=(Array.isArray(profile.seenScenes)?profile.seenScenes:[]).filter(n=>n!==6);
  }
  if(s.mode==='story'&&s.chapter===6&&s.profile.cleared&&!s.profile.wardenCleared)s.chapter=8;
- if(s.chapter===8&&s.profile.wardenCleared)s.chapter=6;
+ if(s.mode==='story'&&s.chapter===8&&s.profile.wardenCleared)s.chapter=6;
  enterChapter(s,s.chapter);return s;
 }
 export function enterChapter(s,n){

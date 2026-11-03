@@ -1,6 +1,6 @@
 // The deck floor masks still handle rooms and cover. Stair surfaces join those
 // masks in world space, with the current flight resolving overlapping x/z.
-import {WARDEN_STAIRS} from './levels.js?v=10';
+import {WARDEN_STAIRS} from './levels.js?v=11';
 
 function project(point,a,b){
  const dx=b.x-a.x,dz=b.z-a.z,length=Math.hypot(dx,dz);

@@ -1,8 +1,8 @@
-import {buildCampaignWorld,buildSpireWorld,updateCampaignWorld,powerModel,buildFlightChannels} from './level-view.js?v=10';
-import {CITY_BUILDINGS,CITY_RELAY,SKYPORT,SKY_TOWERS,SKY_EXIT,ARGON_ACCESS,ARGON_RETURN,ARGON_BRIDGE,ARGON_SERVICE_SPAN,ARGON_SERVICE_CACHE,ARGON_RECOVERY} from './world.js?v=10';
+import {buildCampaignWorld,buildSpireWorld,updateCampaignWorld,powerModel,buildFlightChannels} from './level-view.js?v=11';
+import {CITY_BUILDINGS,CITY_RELAY,SKYPORT,SKY_TOWERS,SKY_EXIT,ARGON_ACCESS,ARGON_RETURN,ARGON_BRIDGE,ARGON_SERVICE_SPAN,ARGON_SERVICE_CACHE,ARGON_RECOVERY} from './world.js?v=11';
 import * as T from '../vendor/three.module.js';
-import {COLORS,programModel,cycleModel,discModel,tankModel,recognizer,animateProgram,animateCycle,animateTank,jetModel,animateJet} from './art.js?v=10';
-import {coverOf,boundsOf,gateOf,targetOf,forward,clamp,wrap,isCity,isVehicle,isCycle,isTank,aimSolution,navigationTarget} from './sim.js?v=10';
+import {COLORS,programModel,cycleModel,discModel,tankModel,recognizer,animateProgram,animateCycle,animateTank,jetModel,animateJet} from './art.js?v=11';
+import {coverOf,boundsOf,gateOf,targetOf,forward,clamp,wrap,isCity,isVehicle,isCycle,isTank,aimSolution,navigationTarget} from './sim.js?v=11';
 const vshader='varying vec2 uv0;void main(){uv0=uv;gl_Position=vec4(position.xy,0.,1.);}';
 export class GridView{
  constructor(canvas,{low=false}={}){

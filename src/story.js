@@ -1,4 +1,4 @@
-import {CHAPTERS} from './world.js?v=10';
+import {CHAPTERS} from './world.js?v=11';
 const shot=(speaker,text,camera,look)=>({speaker,text,camera,look});
 export function sceneFor(chapter){
  const scenes=[

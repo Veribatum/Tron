@@ -63,7 +63,12 @@ try{
  assert((await spire.locator('#chapter').textContent()).includes('COOLANT SHUNT'));
  assert((await spire.locator('#objective-text').textContent()).includes('condenser'));
  assert.equal(Number(await spire.locator('#hud').getAttribute('data-altitude')),32);
- await shot(spire,'spire-processing-ring');await spire.close();
+ await shot(spire,'spire-processing-ring');
+ const campaignSave=await spire.evaluate(()=>localStorage.getItem('gridrunner-profile-v1'));
+ await menu(spire);await simulation(spire,'WARDEN SPIRE REPLAY');
+ assert.equal(Number(await spire.locator('#hud').getAttribute('data-altitude')),0);
+ assert.equal(await spire.evaluate(()=>localStorage.getItem('gridrunner-profile-v1')),campaignSave);
+ await spire.close();
  const epilogue=await open({isMobile:true,hasTouch:true});await epilogue.addInitScript(()=>localStorage.setItem('gridrunner-profile-v1',JSON.stringify({name:'CIRCUIT',color:'violet',checkpoint:6,checkpointScore:18000,storyVersion:4,cleared:true,wardenCleared:true,flynnFound:true,relayHacked:true,bestDisc:0,bestCycle:0,bestTank:0,started:true})));await epilogue.goto('http://127.0.0.1:8787');await button(epilogue,'EXPLORE ARGON ↗').click();await epilogue.locator('#cinematic').waitFor({state:'visible'});assert((await epilogue.locator('#scene-line').textContent()).includes('erasure order'));await shot(epilogue,'epilogue');await skipScenes(epilogue);assert((await epilogue.locator('#objective-text').textContent()).includes('free'));assert.equal(await epilogue.locator('#score').textContent(),'018000');await epilogue.close();assert.deepEqual(errors,[]);console.log('PASS resolved chapter epilogue resumes as city exploration with the saved score');
  const motion=await open({viewport:{width:1100,height:960}});await motion.goto('http://127.0.0.1:8787/scripts/motion-proof.html');await motion.waitForFunction(()=>window.motionQA?.ready);await motion.evaluate(()=>window.motionQA.capture(.3));await shot(motion,'motion-contact');await motion.close();assert.deepEqual(errors,[]);
 }catch(e){if(browser)for(const[i,p]of browser.contexts().flatMap(c=>c.pages()).entries())await p.screenshot({path:'browser-proof/failure-'+i+'.png',timeout:8000}).catch(()=>{});throw e}finally{await browser?.close();server.kill();clearTimeout(timeout)}
