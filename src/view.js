@@ -1,8 +1,8 @@
-import {buildCampaignWorld,updateCampaignWorld,powerModel,buildFlightChannels} from './level-view.js?v=7';
-import {CITY_BUILDINGS,CITY_RELAY,SKYPORT,SKY_TOWERS,SKY_EXIT,ARGON_ACCESS,ARGON_RETURN,ARGON_BRIDGE} from './world.js?v=7';
+import {buildCampaignWorld,updateCampaignWorld,powerModel,buildFlightChannels} from './level-view.js?v=8';
+import {CITY_BUILDINGS,CITY_RELAY,SKYPORT,SKY_TOWERS,SKY_EXIT,ARGON_ACCESS,ARGON_RETURN,ARGON_BRIDGE,ARGON_SERVICE_SPAN,ARGON_SERVICE_CACHE} from './world.js?v=8';
 import * as T from '../vendor/three.module.js';
-import {COLORS,programModel,cycleModel,discModel,tankModel,recognizer,animateProgram,animateCycle,animateTank,jetModel,animateJet} from './art.js?v=7';
-import {coverOf,boundsOf,gateOf,targetOf,forward,clamp,wrap,isCity,isVehicle,isCycle,isTank,aimSolution,navigationTarget} from './sim.js?v=7';
+import {COLORS,programModel,cycleModel,discModel,tankModel,recognizer,animateProgram,animateCycle,animateTank,jetModel,animateJet} from './art.js?v=8';
+import {coverOf,boundsOf,gateOf,targetOf,forward,clamp,wrap,isCity,isVehicle,isCycle,isTank,aimSolution,navigationTarget} from './sim.js?v=8';
 const vshader='varying vec2 uv0;void main(){uv0=uv;gl_Position=vec4(position.xy,0.,1.);}';
 export class GridView{
  constructor(canvas,{low=false}={}){
@@ -14,7 +14,7 @@ export class GridView{
  add(geo,mat,x=0,y=0,z=0,parent=this.root){const m=new T.Mesh(geo,mat);m.position.set(x,y,z);parent.add(m);return m}
  box(w,h,d,mat,x,y,z,parent=this.root){return this.add(new T.BoxGeometry(w,h,d),mat,x,y,z,parent)}
  circuitTexture(){const c=document.createElement('canvas');c.width=c.height=512;const x=c.getContext('2d');x.fillStyle='#14232f';x.fillRect(0,0,512,512);x.strokeStyle='#284554';x.lineWidth=2;for(let i=0;i<=512;i+=64){x.beginPath();x.moveTo(i,0);x.lineTo(i,512);x.moveTo(0,i);x.lineTo(512,i);x.stroke()}x.strokeStyle='#335563';x.lineWidth=1;for(let i=0;i<8;i++){const a=i*64;x.beginPath();x.moveTo(a+16,8);x.lineTo(a+16,36);x.lineTo(a+35,55);x.lineTo(a+35,150+i*30);x.stroke()}const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set(14,14);return t}
- clear(){const geos=new Set(),mats=new Set(),textures=new Set();this.root.traverse(o=>{if(o.geometry)geos.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])if(m){mats.add(m);if(m.map)textures.add(m.map)}});geos.forEach(g=>g.dispose());mats.forEach(m=>m.dispose());textures.forEach(t=>t.dispose());this.root.clear();this.units.clear();this.discs.clear();this.orbs.clear();this.shells.clear();this.bolts.clear();this.cores.clear();this.fx=[];this.fallen=[];this.lastPlayer=null;this.target=null;this.ally=null;this.archiveFigure=null;this.scanBeam=null;this.waypoint=null;this.returnBeacon=null;this.argonBridge=null;this.bridgeGate=null;this.argonConsoles=null;this.levelDoors=null;this.levelShards=null;this.lastShot=null;}
+ clear(){const geos=new Set(),mats=new Set(),textures=new Set();this.root.traverse(o=>{if(o.geometry)geos.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])if(m){mats.add(m);if(m.map)textures.add(m.map)}});geos.forEach(g=>g.dispose());mats.forEach(m=>m.dispose());textures.forEach(t=>t.dispose());this.root.clear();this.units.clear();this.discs.clear();this.orbs.clear();this.shells.clear();this.bolts.clear();this.cores.clear();this.fx=[];this.fallen=[];this.lastPlayer=null;this.target=null;this.ally=null;this.archiveFigure=null;this.scanBeam=null;this.waypoint=null;this.returnBeacon=null;this.argonBridge=null;this.serviceCache=null;this.bridgeGate=null;this.argonConsoles=null;this.levelDoors=null;this.levelShards=null;this.lastShot=null;}
  build(s){
   this.clear();this.chapter=s.chapter;this.onFoot=!!s.onFoot;this.color=COLORS[s.profile.color]||COLORS.cyan;const cycle=isCycle(s),tank=isTank(s),refuge=s.chapter===3,sky=s.chapter===5,city=isCity(s),b=boundsOf(s),black=this.material(0x080f18),steel=this.material(0x17232e),glass=this.material(0x0a1c27,{roughness:.15}),cyan=new T.MeshBasicMaterial({color:0x3dd9f3}),orange=new T.MeshBasicMaterial({color:0xff8b44}),dim=new T.MeshBasicMaterial({color:0x123444});
   this.scene.fog.density=sky?.0025:city?.0055:.007;if(s.levelMap){buildCampaignWorld(this,s,{black,steel,cyan,orange,dim})}else{const ground=this.material(refuge?0x8c9da4:tank?0x3b4652:0x617d90,{map:this.circuitTexture(),roughness:.8,metalness:.1});if(!sky){this.box(b.x*2+2,.5,b.z*2+2,ground,0,-.3,0);this.box(b.x*2+8,2,b.z*2+8,black,0,-1.5,0)}
@@ -57,12 +57,13 @@ export class GridView{
  update(s,dt,{yaw,pitch,attract=false,look=false,paused=false,cinematic=null}={}){
   const cameraDt=dt;if(paused)dt=0;
   if(s.chapter!==this.chapter||!!s.onFoot!==this.onFoot)this.build(s);this.time+=dt;const p=s.player;
-  if(this.argonBridge)this.argonBridge.visible=s.argonStage>=2||s.profile.cleared;
+  if(this.argonBridge)this.argonBridge.visible=s.argonStage>=2||s.chapter===6&&s.profile.cleared;
+  if(this.serviceCache){this.serviceCache.visible=!s.profile.serviceCache;this.serviceCache.rotation.y=this.time;}
   if(this.bridgeGate)this.bridgeGate.visible=s.argonStage<2&&!s.profile.cleared;
   if(this.argonConsoles)this.argonConsoles.forEach((g,i)=>{g.visible=i===s.argonStage&&!(s.chapter===6&&s.profile.cleared)&&!(s.chapter===4&&s.relayHacked)});
   if(this.scanBeam)this.scanBeam.visible=s.argonStage<2;
 
-  for(const unit of[p,...s.enemies,...s.citizens]){let g=this.units.get(unit.id);if(!unit.alive){if(g){this.units.delete(unit.id);if(g.userData.health)g.userData.health.visible=false;if(g.userData.windup)g.userData.windup.visible=false;this.fallen.push({g,age:0,chapter:s.chapter})}continue}if(!g){const civic=unit.type==='citizen'||unit.type==='mara';g=unit.type==='bike'?cycleModel(COLORS.orange):unit.type==='tank'?tankModel(COLORS.orange):unit.type==='jet'?jetModel(COLORS.orange):unit.type==='power'?powerModel():programModel(civic?(unit.type==='mara'?COLORS.white:COLORS.violet):unit.type==='sentinel'?COLORS.red:COLORS.orange,{heavy:unit.type==='sentinel',frame:unit.type==='mara'||civic&&Number(unit.id.at(-1))%2===0?'female':'male',helmet:!civic});g.userData.kind=unit.type==='bike'?'cycle':unit.type==='tank'?'tank':unit.type==='jet'?'jet':unit.type==='power'?'power':'program';this.root.add(g);this.units.set(unit.id,g);if(unit.type!=='bike'&&!civic){const bar=this.add(new T.PlaneGeometry(1.2,.065),new T.MeshBasicMaterial({color:COLORS.orange,depthTest:false}),0,unit.type==='tank'||unit.type==='power'?3.4:2.4,0,g);g.userData.health=bar;const ring=this.add(new T.RingGeometry(.65,.75,32),new T.MeshBasicMaterial({color:0xff6c38,side:T.DoubleSide,transparent:true,opacity:.65,depthWrite:false}),0,.06,0,g);ring.rotation.x=-Math.PI/2;g.userData.windup=ring}if(s.chapter===4&&!civic){const cone=this.add(new T.CircleGeometry(22,32,-Math.PI/2-.66,1.32),new T.MeshBasicMaterial({color:0xff9c57,transparent:true,opacity:.06,side:T.DoubleSide,depthWrite:false}),0,.035,0,g);cone.rotation.x=-Math.PI/2;g.userData.sight=cone}}
+  for(const unit of[p,...s.enemies,...s.citizens]){let g=this.units.get(unit.id);if(!unit.alive){if(g){this.units.delete(unit.id);if(g.userData.health)g.userData.health.visible=false;if(g.userData.windup)g.userData.windup.visible=false;this.fallen.push({g,age:0,chapter:s.chapter})}continue}if(!g){const civic=unit.type==='citizen'||unit.type==='mara';g=unit.type==='bike'?cycleModel(COLORS.orange):unit.type==='tank'?tankModel(COLORS.orange):unit.type==='jet'?jetModel(COLORS.orange):unit.type==='power'?powerModel():programModel(civic?(unit.type==='mara'?COLORS.white:COLORS.violet):unit.type==='sentinel'?COLORS.red:COLORS.orange,{heavy:unit.type==='sentinel',frame:unit.type==='mara'||civic&&Number(unit.id.at(-1))%2===0?'female':'male',helmet:!civic,style:unit.type==='mara'?'mara':'standard'});g.userData.kind=unit.type==='bike'?'cycle':unit.type==='tank'?'tank':unit.type==='jet'?'jet':unit.type==='power'?'power':'program';this.root.add(g);this.units.set(unit.id,g);if(unit.type!=='bike'&&!civic){const bar=this.add(new T.PlaneGeometry(1.2,.065),new T.MeshBasicMaterial({color:COLORS.orange,depthTest:false}),0,unit.type==='tank'||unit.type==='power'?3.4:2.4,0,g);g.userData.health=bar;const ring=this.add(new T.RingGeometry(.65,.75,32),new T.MeshBasicMaterial({color:0xff6c38,side:T.DoubleSide,transparent:true,opacity:.65,depthWrite:false}),0,.06,0,g);ring.rotation.x=-Math.PI/2;g.userData.windup=ring}if(s.chapter===4&&!civic){const cone=this.add(new T.CircleGeometry(22,32,-Math.PI/2-.66,1.32),new T.MeshBasicMaterial({color:0xff9c57,transparent:true,opacity:.06,side:T.DoubleSide,depthWrite:false}),0,.035,0,g);cone.rotation.x=-Math.PI/2;g.userData.sight=cone}}
    const before=g.userData.previous,elapsed=Math.max(dt,.001),wx=before?(unit.x-before.x)/elapsed:0,wz=before?(unit.z-before.z)/elapsed:0,speed=Math.hypot(wx,wz),turn=before?wrap(unit.yaw-before.yaw)/elapsed:0;g.position.set(unit.x,unit.y||0,unit.z);g.visible=unit.type!=='citizen'||Math.hypot(unit.x-p.x,unit.z-p.z)<68;
    if(!before)g.rotation.y=unit.yaw;else if(g.userData.kind!=='program')g.rotation.y=unit.yaw;else g.rotation.y+=wrap(unit.yaw-g.rotation.y)*(1-Math.exp(-dt*20));g.userData.previous={x:unit.x,z:unit.z,yaw:unit.yaw};
    if(g.userData.kind==='cycle')animateCycle(g,dt,{speed:unit.speed,turn,boosting:unit.boosting,braking:unit.speed<14,clip:unit.anim,age:unit.animAge,catchAge:unit.catchAge,thrown:s.discs.some(d=>d.owner===unit.id)});
@@ -132,6 +133,14 @@ export class GridView{
   const windows=new T.InstancedMesh(new T.BoxGeometry(.65,.85,.045),new T.MeshBasicMaterial({color:s.chapter===6?0x7fb9c2:0x2e6378}),2200),dummy=new T.Object3D();let index=0;
   for(const [i,o]of CITY_BUILDINGS.entries()){this.box(o.w*2,o.h,o.d*2,black,o.x,o.h/2,o.z);this.box(o.w*2+.05,.4,o.d*2+.05,steel,o.x,o.h,o.z);for(const side of[-1,1]){this.box(.07,o.h,.06,cyan,o.x+side*(o.w-.2),o.h/2,o.z+o.d+.04);this.box(o.w*2,.06,.06,dim,o.x,4.2,o.z+side*(o.d+.04));for(let y=6;y<o.h-2;y+=3.2)for(let x=-o.w+2;x<o.w-1;x+=2.2){dummy.position.set(o.x+x,y,o.z+side*(o.d+.05));dummy.rotation.set(0,0,0);dummy.updateMatrix();windows.setMatrixAt(index++,dummy.matrix)}}
    this.box(o.w*1.6,2.8,.08,steel,o.x,1.4,o.z+o.d+.055);const sign=this.textPanel(i===0?'CIVIC / ARGON':i%3===0?'MEMORY SERVICES':i%2?'IDENTITY EXCHANGE':'TRANSIT',Math.min(8,o.w*1.6),.8);sign.position.set(o.x,3.1,o.z+o.d+.11);this.root.add(sign);
+   if(i%4===0){
+    const crown=this.add(new T.CylinderGeometry(o.w*.38,o.w*.72,5,4),steel,o.x,o.h+2.4,o.z);
+    crown.rotation.y=Math.PI/4;crown.scale.z=o.d/o.w;
+    const mast=this.add(new T.CylinderGeometry(.14,.45,12,4),black,o.x,o.h+10,o.z);
+    mast.rotation.y=Math.PI/4;
+    this.box(.12,9,.11,cyan,o.x+.21,o.h+10,o.z+.11);
+    this.box(o.w*1.55,.07,.09,cyan,o.x,o.h+.2,o.z+o.d+.05);
+   }
   }windows.count=index;this.root.add(windows);
   for(const o of coverOf(s).filter(o=>!o.building&&!(s.chapter===6&&o.x===0&&o.z===7))){this.box(o.w*2,o.h,o.d*2,steel,o.x,o.h/2,o.z);this.box(o.w*2,.05,.05,cyan,o.x,o.h-.15,o.z+o.d+.03)}
   for(const [z,y] of [[63,13],[-19,17],[-59,24]]){
@@ -154,21 +163,34 @@ export class GridView{
    const locked=new T.MeshBasicMaterial({color:0xff7442,transparent:true,opacity:.28});
    this.box(6,3.1,.12,locked,0,1.55,0,gate);
    for(const x of[-3,3])this.box(.22,3.6,.36,locked,x,1.8,0,gate);
-   const bridge=this.argonBridge=new T.Group();this.root.add(bridge);
-   const deck=new T.MeshBasicMaterial({color:0x2084a2,transparent:true,opacity:.48,side:T.DoubleSide});
-   for(let i=1;i<ARGON_BRIDGE.length;i++){
-    const a=ARGON_BRIDGE[i-1],b=ARGON_BRIDGE[i],length=Math.hypot(b.z-a.z,b.y-a.y);
-    const g=new T.Group();g.position.set(0,(a.y+b.y)/2-.07,(a.z+b.z)/2);g.rotation.x=Math.atan2(b.y-a.y,a.z-b.z);bridge.add(g);
-    this.box(6.3,.14,length,deck,0,0,0,g);
-    for(const x of[-3.1,3.1]){
-     this.box(.11,.11,length,cyan,x,.09,0,g);this.box(.06,.08,length,cyan,x,.96,0,g);
-     for(let z=-length/2+.5;z<length/2;z+=3)this.box(.07,.92,.08,cyan,x,.5,z,g);
-    }
-    for(let z=-length/2+.5;z<length/2;z+=1.5)this.box(6,.02,.035,cyan,0,.075,z,g);
-   }
+   this.buildLightBridge(0,ARGON_BRIDGE,cyan);
+  }else if(s.mode==='story'){
+   const {x,points}=ARGON_SERVICE_SPAN;
+   const span=this.buildLightBridge(x,points,cyan);
+   const marker=this.textPanel('RELAY / UPPER ACCESS',5.4,.65);
+   marker.position.set(x,2,1);span.add(marker);
+   const cache=ARGON_SERVICE_CACHE;
+   this.serviceCache=this.add(new T.OctahedronGeometry(.52),white,cache.x,cache.y+.75,cache.z,span);
+   this.box(.9,.12,.9,steel,cache.x,cache.y+.07,cache.z,span);
   }
   const terminal=this.textPanel('CIVIC RELAY',3.4,.7);terminal.position.set(-38,1.7,-41.1);this.root.add(terminal);const screen=this.add(new T.PlaneGeometry(2,.55),white,-38,1.25,-41.15);screen.rotation.x=-.4;
   for(const side of[-1,1]){this.box(.1,3,.1,white,SKYPORT.x+side*5,1.5,SKYPORT.z-1);this.box(2,.03,.3,walk,side*6,.03,61)}const pad=this.add(new T.RingGeometry(4.8,4.94,64),white,SKYPORT.x,.055,SKYPORT.z);pad.rotation.x=-Math.PI/2;const sign=this.textPanel('SKYPORT / 07',7,.9);sign.position.set(SKYPORT.x,3.2,SKYPORT.z-5);this.root.add(sign);const docked=jetModel(COLORS.white);docked.position.set(SKYPORT.x,1.15,SKYPORT.z-1);docked.scale.setScalar(.72);docked.rotation.y=Math.PI;this.root.add(docked);
+ }
+ buildLightBridge(x,points,cyan){
+  const bridge=this.argonBridge=new T.Group();this.root.add(bridge);
+  const deck=new T.MeshBasicMaterial({color:0x2084a2,transparent:true,opacity:.48,side:T.DoubleSide});
+  for(let i=1;i<points.length;i++){
+   const a=points[i-1],b=points[i],length=Math.hypot(b.z-a.z,b.y-a.y);
+   const g=new T.Group();g.position.set(x,(a.y+b.y)/2-.07,(a.z+b.z)/2);
+   g.rotation.x=Math.atan2(b.y-a.y,a.z-b.z);bridge.add(g);
+   this.box(6.3,.14,length,deck,0,0,0,g);
+   for(const rail of[-3.1,3.1]){
+    this.box(.11,.11,length,cyan,rail,.09,0,g);this.box(.06,.08,length,cyan,rail,.96,0,g);
+    for(let z=-length/2+.5;z<length/2;z+=3)this.box(.07,.92,.08,cyan,rail,.5,z,g);
+   }
+   for(let z=-length/2+.5;z<length/2;z+=1.5)this.box(6,.02,.035,cyan,0,.075,z,g);
+  }
+  return bridge;
  }
  buildSky(s,black,steel,cyan){
   const water=this.material(0x082333,{roughness:.32,metalness:.62});

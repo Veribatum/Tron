@@ -36,7 +36,10 @@ try{
  for(const point of [{x:0,z:45},{x:0,z:5},{x:-37,z:5}])await walkTo(refuge,point);
  await button(refuge,'SCANNER OVERRIDE').click();
  await refuge.waitForFunction(()=>document.getElementById('objective-text').textContent.includes('root key'));
- for(const point of [{x:-32,z:5},{x:-32,z:-39},{x:-38,z:-39}])await walkTo(refuge,point);
+ await walkTo(refuge,{x:-37,z:-19});
+ assert(Number(await refuge.locator('#hud').getAttribute('data-altitude'))>7);
+ await walkTo(refuge,{x:-37,z:-39});
+ assert(Number(await refuge.locator('#hud').getAttribute('data-altitude'))<1);
  await button(refuge,'Access civic relay').tap();await refuge.locator('#cinematic').waitFor({state:'visible'});assert((await refuge.locator('#scene-title').textContent()).includes('LIST OF THE LIVING'));await shot(refuge,'relay-story');await skipScenes(refuge);
  saved=await refuge.evaluate(()=>JSON.parse(localStorage.getItem('gridrunner-profile-v1')));assert.equal(saved.relayHacked,true);assert.equal(saved.checkpoint,4);
  for(const point of [{x:0,z:-39},{x:0,z:-73},{x:37,z:-73}])await walkTo(refuge,point);

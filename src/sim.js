@@ -1,6 +1,6 @@
-import {LEVELS,LEVEL_VERSION,CELL,floorContains,floorRoute,roadPoint,nearestRoad,FLIGHT_APPROACH} from './levels.js?v=7';
-import {CLIPS} from './motion.js?v=7';
-import {CITY_BOUNDS,SKY_BOUNDS,CITY_COVER,CITY_ENTRY,CITY_RELAY,SKYPORT,REFUGE_EXIT,PATROL_ROUTES,CIVIC_ROUTES,SKY_TOWERS,SKY_CORES,SKY_EXIT,ARGON_ACCESS,ARGON_RETURN,ARGON_BRIDGE} from './world.js?v=7';
+import {LEVELS,LEVEL_VERSION,CELL,floorContains,floorRoute,roadPoint,nearestRoad,FLIGHT_APPROACH} from './levels.js?v=8';
+import {CLIPS} from './motion.js?v=8';
+import {CITY_BOUNDS,SKY_BOUNDS,CITY_COVER,CITY_ENTRY,CITY_RELAY,SKYPORT,REFUGE_EXIT,PATROL_ROUTES,CIVIC_ROUTES,SKY_TOWERS,SKY_CORES,SKY_EXIT,ARGON_ACCESS,ARGON_RETURN,ARGON_BRIDGE,ARGON_SERVICE_SPAN,ARGON_SERVICE_CACHE} from './world.js?v=8';
 export {CITY_BOUNDS,SKY_BOUNDS,CITY_COVER,CITY_RELAY,SKYPORT,REFUGE_EXIT,SKY_TOWERS,SKY_EXIT};
 export const VERSION=1;
 export const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -62,13 +62,20 @@ function pendingTick(s,a){
 
 export function walkable(s,x,z,r=.5){const b=boundsOf(s);if(s.levelMap&&!floorContains(s.levelMap,x,z,r))return false;if(Math.abs(x)>b.x-r||Math.abs(z)>b.z-r)return false;return !(s.levelMap?[...s.levelMap.props,...campaignDoors(s)]:coverOf(s)).some(o=>Math.abs(x-o.x)<o.w+r&&Math.abs(z-o.z)<o.d+r)}
 export function clearLine(s,a,b,r=.3){const n=Math.ceil(dist(a,b)/.45);for(let i=1;i<n;i++){const t=i/n;if(!walkable(s,a.x+(b.x-a.x)*t,a.z+(b.z-a.z)*t,r))return false}return true}
-export function move(s,a,dx,dz){if(walkable(s,a.x+dx,a.z))a.x+=dx;if(walkable(s,a.x,a.z+dz))a.z+=dz}
+export function move(s,a,dx,dz){
+ if(a===s.player&&s.onBridge&&s.chapter===4){
+  const {x,width}=ARGON_SERVICE_SPAN;
+  a.x=clamp(a.x+dx,x-width,x+width);a.z+=dz;return;
+ }
+ if(walkable(s,a.x+dx,a.z))a.x+=dx;
+ if(walkable(s,a.x,a.z+dz))a.z+=dz;
+}
 export function routeTo(s,a,b){
  const radius=isTank(s)?2.5:.7;if(clearLine(s,a,b,radius))return[b];if(s.levelMap)return floorRoute(s.levelMap,a,b,(x,z,r)=>walkable(s,x,z,r),radius,(a,b,r)=>clearLine(s,a,b,r));const nodes=[a,b];for(const o of coverOf(s))for(const x of[-1,1])for(const z of[-1,1]){const p={x:o.x+x*(o.w+radius+.4),z:o.z+z*(o.d+radius+.4)};if(walkable(s,p.x,p.z,radius))nodes.push(p)}
  const costs=nodes.map(()=>Infinity),done=new Set(),prev=[];costs[0]=0;for(let n=0;n<nodes.length;n++){let u=-1;for(let i=0;i<nodes.length;i++)if(!done.has(i)&&(u<0||costs[i]<costs[u]))u=i;if(u<0||!Number.isFinite(costs[u]))break;if(u===1){const out=[];for(let i=1;i>0;i=prev[i])out.unshift(nodes[i]);return out}done.add(u);for(let j=0;j<nodes.length;j++)if(!done.has(j)&&clearLine(s,nodes[u],nodes[j],radius)){const next=costs[u]+dist(nodes[u],nodes[j]);if(next<costs[j]){costs[j]=next;prev[j]=u}}}return[];
 }
 function spawnWave(s){s.wave++;const positions=[[-22,15],[22,14],[0,-27],[-28,-9],[28,-12]];for(let i=positions.length-1;i>0;i--){const j=Math.floor(s.random()*(i+1));[positions[i],positions[j]]=[positions[j],positions[i]]}const count=s.wave===1?2:s.wave===2?3:4;s.enemies=positions.slice(0,count).map(([x,z],i)=>({id:'guard-'+s.wave+'-'+i,type:s.wave===3&&i===3?'sentinel':i%2?'striker':'disc',x,z,yaw:0,hp:s.wave===3&&i===3?140:55+s.wave*8,maxHp:s.wave===3&&i===3?140:55+s.wave*8,alive:true,attack:1.5+i*.5,windup:0,stagger:0,action:0,path:[],pathTime:0,age:0}));emit(s,'wave',{wave:s.wave});}
-export function targetOf(s){if(s.chapter===5)return flightTarget(s);const p=s.player;return s.enemies.filter(e=>e.alive&&dist(p,e)<(isTank(s)?72:isCycle(s)?48:34)&&clearLine(s,p,e)).sort((a,b)=>dist(a,p)-dist(b,p))[0]||null}
+export function targetOf(s){if(s.chapter===5)return flightTarget(s);const p=s.player;if(p.y>2.5)return null;return s.enemies.filter(e=>e.alive&&dist(p,e)<(isTank(s)?72:isCycle(s)?48:34)&&clearLine(s,p,e)).sort((a,b)=>dist(a,p)-dist(b,p))[0]||null}
 export function canAccessArchive(s){return s.chapter===3&&!s.archiveRead&&dist(s.player,ARCHIVE)<3.2}
 export function canAccessRelay(s){return s.chapter===4&&!s.relayHacked&&!cityAccessTarget(s)&&dist(s.player,CITY_RELAY)<3.6}
 export function canBoardJet(s){return s.chapter===4&&s.relayHacked&&dist(s.player,SKYPORT)<6}
@@ -87,13 +94,13 @@ export function act(s,action){
   if(action==='pulse'&&p.pulse<=0&&p.energy>=35){p.energy-=35;p.pulse=9;p.shield=2.8;emit(s,'shield',{x:p.x,z:p.z});return true}
   return false;
  }
- if(action==='attack'){
+ if(action==='attack'&&p.y<2.5){
   if(p.attack>0||p.pending||(!target||isVehicle(s)||dist(p,target)>=3.2)&&s.discs.some(d=>d.owner==='player'))return false;
   if(!isVehicle(s)&&target&&dist(p,target)<3.2){s.combo=s.comboTime>0?s.combo%3+1:1;s.comboTime=1.8;p.yaw=Math.atan2(target.x-p.x,target.z-p.z);const clip='slash'+s.combo;playClip(p,clip);p.attack=CLIPS[clip].duration;p.pending={kind:'melee',target:target.id,combo:s.combo,impact:CLIPS[clip].impact};}
   else{const yaw=target?Math.atan2(target.x-p.x,target.z-p.z):p.yaw;if(!isVehicle(s))p.yaw=yaw;playClip(p,'throw');p.attack=.64;p.pending={kind:'throw',target:target?.id,yaw,impact:CLIPS.throw.impact};}return true;
  }
  if(action==='dash'&&!isVehicle(s)&&p.dash<=0&&p.energy>=23){p.energy-=23;p.dash=1.8;p.invuln=.4;p.dashTime=.23;p.pending=null;p.attack=Math.min(p.attack,.2);playClip(p,'dodge');const d=forward(p.yaw);p.dashX=d.x;p.dashZ=d.z;emit(s,'dash',{x:p.x,z:p.z});return true}
- if(action==='pulse'&&!isVehicle(s)&&!p.pending&&p.pulse<=0&&p.energy>=40){p.energy-=40;p.pulse=9;playClip(p,'pulse');p.pending={kind:'pulse',impact:CLIPS.pulse.impact};return true}
+ if(action==='pulse'&&p.y<2.5&&!isVehicle(s)&&!p.pending&&p.pulse<=0&&p.energy>=40){p.energy-=40;p.pulse=9;playClip(p,'pulse');p.pending={kind:'pulse',impact:CLIPS.pulse.impact};return true}
 
  return false;
 }
@@ -104,7 +111,7 @@ function hurt(s,a,n,playerHit=false){
 }
 function discsTick(s,dt){for(const d of s.discs){d.age+=dt;const from={x:d.x,z:d.z};if(d.owner==='player'&&(d.age>.67||d.returning)){d.returning=true;const n=dist(d,s.player)||1;d.dx=(s.player.x-d.x)/n;d.dz=(s.player.z-d.z)/n;if(n<.75){d.gone=true;s.player.catchAge=0;emit(s,'catch',{x:s.player.x,z:s.player.z});continue}}
   const nx=d.x+d.dx*d.speed*dt,nz=d.z+d.dz*d.speed*dt;if(!walkable(s,nx,nz,.15)){if(d.owner!=='player'){d.gone=true;continue}if(d.returning){d.x=nx;d.z=nz}else{if(!walkable(s,nx,d.z,.15))d.dx=-d.dx;else d.dz=-d.dz;d.bounces++;d.returning=d.bounces>1;emit(s,'ricochet',{x:d.x,z:d.z})}}else{d.x=nx;d.z=nz}
-  const victims=d.owner==='player'?s.enemies:[s.player];for(const a of victims)if(a.alive&&!d.hit.includes(a.id)&&pointSegment(a,from,d)<(s.chapter?1.4:.95)){if(hurt(s,a,d.damage,d.owner==='player')){d.hit.push(a.id);if(d.owner!=='player')d.gone=true;else if(!isVehicle(s))a.stagger=.4}}
+  const victims=d.owner==='player'?s.enemies:[s.player];for(const a of victims)if(a.alive&&(a.y||0)<2.5&&!d.hit.includes(a.id)&&pointSegment(a,from,d)<(s.chapter?1.4:.95)){if(hurt(s,a,d.damage,d.owner==='player')){d.hit.push(a.id);if(d.owner!=='player')d.gone=true;else if(!isVehicle(s))a.stagger=.4}}
   if(d.age>2.8)d.gone=true;
  }s.discs=s.discs.filter(d=>!d.gone)}
 function guardTick(s,e,dt){
@@ -164,13 +171,20 @@ function spawnReserve(s){
 }
 function bridgeTick(s){
  const p=s.player;
- if(s.argonStage<2)return;
- const [entry,crest,edge,exit]=ARGON_BRIDGE;
- if(!s.onBridge&&Math.abs(p.x)<3&&p.z<=entry.z&&p.z>=exit.z&&(p.z>entry.z-1||p.z<exit.z+1))s.onBridge=true;
+ if(s.argonStage<2||s.chapter===4&&s.mode!=='story')return;
+ const span=s.chapter===4?ARGON_SERVICE_SPAN:{x:0,width:3,points:ARGON_BRIDGE};
+ const [entry,crest,edge,exit]=span.points;
+ if(!s.onBridge&&Math.abs(p.x-span.x)<span.width&&p.z<=entry.z&&p.z>=exit.z&&(p.z>entry.z-1||p.z<exit.z+1))s.onBridge=true;
  if(!s.onBridge)return;
  if(p.z>entry.z||p.z<exit.z){s.onBridge=false;p.y=0;return}
- p.x=clamp(p.x,-3,3);
+ p.x=clamp(p.x,span.x-span.width,span.x+span.width);
  p.y=p.z>crest.z?crest.y*(entry.z-p.z)/(entry.z-crest.z):p.z<edge.z?edge.y*(p.z-exit.z)/(edge.z-exit.z):crest.y;
+ if(s.chapter===4&&!s.profile.serviceCache&&distance3(p,ARGON_SERVICE_CACHE)<1.65){
+  s.profile.serviceCache=true;s.score+=400;s.profile.checkpointScore=s.score;
+  p.hp=clamp(p.hp+25,0,100);
+  emit(s,'levelcheckpoint');
+  emit(s,'radio',{text:'MARA: That cache belonged to the programs who built this span. Take the charge. They’d want it used.'});
+ }
 }
 function spawnCity(s){
  if(s.chapter===4&&s.mode==='story')s.argonStage=clamp(Math.trunc(s.profile.argonAccess)||0,0,2);
@@ -195,7 +209,7 @@ function cityTick(s,dt){
  for(const c of s.citizens)if(c.route){const goal=c.route[c.waypoint];followRoute(s,c,dt,c.speed,goal);if(dist(c,goal)<.8)c.waypoint=(c.waypoint+1)%c.route.length}
  for(const e of s.enemies)if(e.alive){
   if(s.chapter===6){if(p.y<2&&dist(e,p)<45)guardTick(s,e,dt);continue}
-  const distance=dist(e,p),angle=Math.abs(wrap(Math.atan2(p.x-e.x,p.z-e.z)-e.yaw)),range=p.crouching?11:22,seen=distance<range&&(angle<.66||distance<(p.crouching?2.2:4.2))&&clearLine(s,e,p);
+  const distance=dist(e,p),angle=Math.abs(wrap(Math.atan2(p.x-e.x,p.z-e.z)-e.yaw)),range=p.crouching?11:22,seen=p.y<2.5&&distance<range&&(angle<.66||distance<(p.crouching?2.2:4.2))&&clearLine(s,e,p);
   e.suspicion=clamp(e.suspicion+dt*((scan&&dist(e,p)<40)?.75:seen?(p.crouching?.55:1.0):-.38),0,1);
   if(seen){e.lastSeen={x:p.x,z:p.z};e.lostSight=0}else e.lostSight+=dt;
   if(e.suspicion>=1&&!e.alerted){e.alerted=true;s.cityAlarms++;emit(s,'spotted')}
@@ -285,11 +299,11 @@ export function advance(s,seconds,input={}){
  if(isCycle(s)){bikeTick(s,p,dt,input);for(const e of s.enemies)bikeTick(s,e,dt,input);s.trails=s.trails.filter(t=>s.time-t.born<(s.levelMap?4:16)).slice(-1600)}
  else if(s.chapter===5){s.trails=s.trails.filter(t=>s.time-t.born<8).slice(-1600);jetTick(s,p,dt,input);for(const e of s.enemies)jetTick(s,e,dt);boltsTick(s,dt)}
  else if(isTank(s)){tankTick(s,p,dt,input);for(const e of s.enemies)if(e.type==='tank')tankTick(s,e,dt);shellsTick(s,dt)}
- else{p.energy=clamp(p.energy+dt*10,0,100);let x=input.x||0,z=input.z||0,n=Math.hypot(x,z);p.moving=n>.08;if(p.dashTime>0){p.dashTime-=dt;move(s,p,p.dashX*dt*23,p.dashZ*dt*23)}else if(p.moving){x/=Math.max(1,n);z/=Math.max(1,n);if(!p.pending)p.yaw=Math.atan2(x,z);move(s,p,x*dt*(p.crouching?3:7),z*dt*(p.crouching?3:7))}if(isCity(s))cityTick(s,dt);else for(const e of s.enemies)if(e.alive&&(!s.levelMap||dist(p,e)<70))guardTick(s,e,dt);for(const orb of s.pickups){orb.age+=dt;if(dist(orb,p)<2){p.hp=clamp(p.hp+9,0,100);p.energy=clamp(p.energy+18,0,100);orb.gone=true;emit(s,'pickup',{x:orb.x,z:orb.z})}}s.pickups=s.pickups.filter(o=>!o.gone)}
+ else{p.energy=clamp(p.energy+dt*10,0,100);let x=input.x||0,z=input.z||0,n=Math.hypot(x,z);p.moving=n>.08;if(p.dashTime>0){p.dashTime-=dt;move(s,p,p.dashX*dt*23,p.dashZ*dt*23)}else if(p.moving){x/=Math.max(1,n);z/=Math.max(1,n);if(!p.pending)p.yaw=Math.atan2(x,z);move(s,p,x*dt*(p.crouching?3:7),z*dt*(p.crouching?3:7))}if(isCity(s)){if(!s.profile.cleared)bridgeTick(s);cityTick(s,dt);}else for(const e of s.enemies)if(e.alive&&(!s.levelMap||dist(p,e)<70))guardTick(s,e,dt);for(const orb of s.pickups){orb.age+=dt;if(p.y<2&&dist(orb,p)<2){p.hp=clamp(p.hp+9,0,100);p.energy=clamp(p.energy+18,0,100);orb.gone=true;emit(s,'pickup',{x:orb.x,z:orb.z})}}s.pickups=s.pickups.filter(o=>!o.gone)}
  if(s.dead)return s.events;pendingTick(s,p);if(s.player!==p||s.finished)return s.events;if(input.attack)act(s,'attack');if(input.dash)act(s,'dash');if(input.pulse)act(s,'pulse');if(input.interact)act(s,'interact');discsTick(s,dt);if(s.dead)return s.events;
  if(s.levelMap){tickCampaign(s,dt);return s.events}
  if(s.chapter===3){if(s.archiveRead&&dist(p,REFUGE_EXIT)<3)enterChapter(s,4);return s.events}
- if(isCity(s)){if(s.chapter===6&&!s.profile.cleared)bridgeTick(s);return s.events}
+ if(isCity(s))return s.events;
  if(s.chapter===5){if(s.mode==='story'&&s.flightLeg<FLIGHT_APPROACH.length&&distance3(p,FLIGHT_APPROACH[s.flightLeg])<24){s.flightLeg++;emit(s,'message',{text:s.flightLeg===3?'ECHO: West channel reached. The uplink is in the open.':'ECHO: Follow the memory channel through the viaduct.'})}if(s.cores.every(e=>!e.alive)&&!s.gate){s.gate=true;emit(s,'gate');if(s.mode!=='story')finish(s)}if(s.mode==='story'&&s.gate&&distance3(p,SKY_EXIT)<17){s.profile.argonReturn=0;enterChapter(s,6)};return s.events}
  if(s.enemies.every(e=>!e.alive)&&!s.gate){if(!s.chapter&&s.wave<3){s.waveDelay+=dt;if(s.waveDelay>1.6){s.waveDelay=0;spawnWave(s)}}else{
    s.gate=true;emit(s,'gate');
@@ -341,7 +355,7 @@ export function campaignInteraction(s){
   const data=s.chapter===4?cityAccessTarget(s):s.chapter===6&&!s.profile.cleared?ARGON_RETURN[s.argonStage]:null;
   if(s.chapter===6&&s.argonStage===3&&s.enemies.some(e=>e.id==='reserve-registry'&&e.alive))return null;
   if(!data||distance3(s.player,data)>3.6||s.chapter===6&&s.argonStage===1&&s.enemies.some(e=>e.id==='reserve-captain'&&e.alive))return null;
-  if(s.chapter===4&&s.alerted)return null;
+
   return{id:'argon',point:data,label:data.action,aria:data.label};
  }
  const data=s.onFoot?s.levelMap.foot:s.levelMap.stages?.[s.levelStage];

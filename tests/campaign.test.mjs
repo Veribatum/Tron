@@ -10,6 +10,21 @@ test('the former refuge ending becomes the city midpoint and preserves old chara
 test('city relay gates the skyport, then hands off to a playable jet rather than ending the story',()=>{const s=M.createRun({profile:{...M.newProfile(),checkpoint:4}});s.player.x=SKYPORT.x;s.player.z=SKYPORT.z;M.advance(s,.02);assert.equal(s.chapter,4,'skyport is locked before the relay');s.player.x=CITY_RELAY.x;s.player.z=CITY_RELAY.z;assert(!M.canAccessRelay(s));s.enemies=[];
  for(const tap of ARGON_ACCESS){Object.assign(s.player,{x:tap.x,z:tap.z});assert(M.act(s,'interact'));tick(s,.4)}
  assert(M.canAccessRelay({...s,player:{...s.player,...CITY_RELAY}}));Object.assign(s.player,CITY_RELAY);assert(M.act(s,'interact'));tick(s,.4);assert(s.relayHacked);assert(s.profile.relayHacked);assert(!s.finished);s.player.x=SKYPORT.x;s.player.z=SKYPORT.z;M.advance(s,.02);assert.equal(s.chapter,4,'walking near a jet does not board it');assert(M.canBoardJet(s));assert(M.act(s,'interact'));tick(s,.4);assert.equal(s.chapter,5);assert(s.player.y>0);assert(s.cores.length===3);assert(s.enemies.every(e=>e.type==='jet'));assert.equal(s.profile.checkpoint,5)});
+test('an active patrol alert does not lock the override, and the unlocked route rises above street props',()=>{
+ const s=M.createRun({profile:{...M.newProfile(),checkpoint:4,argonAccess:1}});
+ const override=ARGON_ACCESS[1];
+ Object.assign(s.player,{x:override.x,z:override.z});
+ s.alerted=true;
+ assert.equal(M.campaignInteraction(s)?.label,'JAM');
+ assert(M.act(s,'interact'));
+ s.enemies=[];
+ tick(s,.4);assert.equal(s.argonStage,2);
+ tick(s,3.35,{z:-1});assert.equal(s.player.y,8);
+ tick(s,.28,{x:-1});assert(s.profile.serviceCache);
+ const resumed=M.createRun({profile:s.profile});
+ assert(resumed.profile.serviceCache);assert.equal(resumed.argonStage,2);
+ tick(s,3,{z:-1});assert.equal(s.player.y,0);assert(!s.onBridge);
+});
 test('real buildings block patrol sight, crouching slows detection, and a spotted player can break contact',()=>{
  const make=()=>{const s=M.createRun({mode:'city'});s.citizens=[];s.enemies=[{...s.enemies[0],x:0,z:20,yaw:Math.PI,route:[{x:0,z:20},{x:0,z:19}],waypoint:1,path:[],pathTime:0}];s.player.x=0;s.player.z=12;return s};
  const standing=make(),crouched=make();tick(standing,.6);tick(crouched,.6,{crouch:true});assert(standing.exposure>crouched.exposure);assert(crouched.player.crouching);tick(standing,.7);assert(standing.alerted);standing.player.x=-37;standing.player.z=25;assert(!M.clearLine(standing,standing.enemies[0],standing.player));tick(standing,6);assert(!standing.alerted);assert(standing.exposure<.1);

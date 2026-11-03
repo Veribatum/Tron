@@ -1,7 +1,7 @@
 import * as T from '../vendor/three.module.js';
-import {CELL,roadPoint,FLIGHT_APPROACH} from './levels.js?v=7';
-import {cycleModel,tankModel,COLORS} from './art.js?v=7';
-import {campaignDoors} from './sim.js?v=7';
+import {CELL,roadPoint,FLIGHT_APPROACH} from './levels.js?v=8';
+import {cycleModel,tankModel,COLORS} from './art.js?v=8';
+import {campaignDoors} from './sim.js?v=8';
 export function buildCampaignWorld(v,s,{black,steel,cyan,orange,dim}){
  const map=s.levelMap,road=!!map.road,stone=v.material(road?0x263340:0x1e303b,{roughness:.87}),floorMat=v.material(0x29424d,{roughness:.75,metalness:.25}),tiles=new T.InstancedMesh(new T.BoxGeometry(CELL,.14,CELL),floorMat,map.floor.size),dummy=new T.Object3D(),color=new T.Color();let index=0;
  for(const cell of map.floor.values()){dummy.position.set(cell.x,-.12,cell.z);dummy.updateMatrix();tiles.setMatrixAt(index,dummy.matrix);color.set(cell.room==='ROAD'?0x172b36:cell.room==='FREIGHT APRON'?0x344957:0x3b525c);tiles.setColorAt(index++,color)}v.root.add(tiles);tiles.receiveShadow=true;

@@ -26,7 +26,7 @@ export const CHAPTERS=['ARCHIVE / THE UNLISTED','FREIGHT LINE 07','THE DRY AQUED
 
 export const ARGON_ACCESS=[
  {x:36,z:45,label:'TRANSIT TAP',action:'SPOOF',objective:'Spoof a transit identity at the east checkpoint',radio:'MARA: You have a transit identity. Take the cross street to the west alley and blind the Recognizer.'},
- {x:-37,z:5,label:'SCANNER OVERRIDE',action:'JAM',objective:'Jam the Recognizer from the west service alley',radio:'MARA: Scanner dark. Get the root key from the civic relay before the patrols regroup.'}
+ {x:-37,z:5,label:'SCANNER OVERRIDE',action:'JAM',objective:'Jam the Recognizer from the west service alley',radio:'MARA: Scanner dark. Follow the cyan stairs above the patrols, or stay in the alley. Both reach the relay.'}
 ];
 export const ARGON_RETURN=[
  {x:34,z:-70,label:'SKYPORT / SERVICE LIFT',action:'OPEN',objective:'Open the service lift and find the Warden’s ground reserve',radio:'ECHO: The array is cut off. The reserve still has the order. Its captain carries the bridge cipher.'},
@@ -37,3 +37,8 @@ export const ARGON_RETURN=[
 export const ARGON_BRIDGE=[
  {z:8,y:0},{z:-13,y:9},{z:-25,y:9},{z:-46,y:0}
 ];
+
+export const ARGON_SERVICE_SPAN={
+ x:-37,width:3,points:[{z:3,y:0},{z:-12,y:8},{z:-23,y:8},{z:-37,y:0}]
+};
+export const ARGON_SERVICE_CACHE={x:-39,y:8,z:-19};

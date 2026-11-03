@@ -1,5 +1,5 @@
 import * as T from '../vendor/three.module.js';
-import {CLIPS,gaitFrequency,samplePose,legAngles} from './motion.js?v=7';
+import {CLIPS,gaitFrequency,samplePose,legAngles} from './motion.js?v=8';
 export const COLORS={cyan:0x67e9ff,white:0xe6f7ff,violet:0xc39cff,orange:0xff873c,red:0xff424d};
 const metal=(color=0x080c12)=>new T.MeshStandardMaterial({color,metalness:.75,roughness:.27});
 const light=color=>new T.MeshBasicMaterial({color});
@@ -18,14 +18,23 @@ function surface(rings,segments=28){
 }
 function circuit(g,mat,points,r=.012){return mesh(g,new T.TubeGeometry(new T.CatmullRomCurve3(points.map(p=>new T.Vector3(...p))),20,r,5,false),mat)}
 function oval(g,mat,r,x,y,z,sx,sy,sz){const m=sphere(g,mat,r,x,y,z);m.scale.set(sx,sy,sz);return m}
-export function programModel(color=COLORS.cyan,{heavy=false,rider=false,frame='male',helmet=true}={}){
- const female=frame==='female',g=new T.Group(),suit=new T.MeshStandardMaterial({color:0x111b29,roughness:.47,metalness:.3}),armor=new T.MeshStandardMaterial({color:heavy?0x3b434b:0x283847,roughness:.37,metalness:.4}),edge=metal(0x526572),glow=light(color),rubber=metal(0x080e16),face=new T.MeshStandardMaterial({color:female?0xd4b4a0:0xbca78e,roughness:.68,metalness:0}),hair=new T.MeshStandardMaterial({color:0x10161c,roughness:.9,metalness:0}),rig={};
+export function programModel(color=COLORS.cyan,{heavy=false,rider=false,frame='male',helmet=true,style='standard'}={}){
+ const female=frame==='female',mara=style==='mara',g=new T.Group(),suit=new T.MeshStandardMaterial({color:0x111b29,roughness:mara?.25:.47,metalness:.3}),armor=new T.MeshStandardMaterial({color:mara?0x263340:heavy?0x3b434b:0x283847,roughness:.37,metalness:.4}),edge=metal(0x526572),glow=light(color),rubber=metal(0x080e16),face=new T.MeshStandardMaterial({color:female?0xd4b4a0:0xbca78e,roughness:.68,metalness:0}),hair=new T.MeshStandardMaterial({color:0x10161c,roughness:.9,metalness:0}),rig={};
  const hips=new T.Group();hips.position.y=1.03;g.add(hips);rig.hips=hips;
  const pelvis=mesh(hips,surface([[-.12,.19,.12],[0,.245,.15],[.1,female?.21:.23,.14],[.16,.18,.13]]),suit);pelvis.scale.x=heavy?1.25:1;
  const torso=new T.Group();hips.add(torso);rig.torso=torso;
  mesh(torso,surface([[.05,.20,.135],[.18,female?.16:.21,.12],[.32,female?.18:.245,.13],[.47,female?.245:.29,female?.18:.17],[.60,female?.255:.30,.15],[.69,female?.22:.27,.115],[.73,.105,.09]]),suit).scale.x=heavy?1.25:1;
+ if(mara){
+  const neckline=new T.Shape();
+  neckline.moveTo(-.12,.706);neckline.quadraticCurveTo(-.105,.60,0,.49);
+  neckline.quadraticCurveTo(.105,.60,.12,.706);
+  neckline.quadraticCurveTo(0,.765,-.12,.706);
+  mesh(torso,new T.ShapeGeometry(neckline,12),face,0,0,.183);
+  circuit(torso,glow,[[-.12,.706,.186],[-.09,.61,.185],[0,.49,.186],[.09,.61,.185],[.12,.706,.186]],.008);
+  circuit(torso,glow,[[-.19,.40,.177],[-.12,.31,.154],[.12,.23,.155],[.17,.13,.15]],.009);
+ }
  for(const side of[-1,1]){
-  const plate=mesh(torso,surface([[.36,.085,.028],[.43,.12,.06],[.54,.125,.055],[.62,.105,.03],[.65,.07,.015]],20),armor,side*(female?.118:.132),0,.13);plate.rotation.z=side*-.08;
+  const plate=mesh(torso,surface([[.36,.085,.028],[.43,.12,.06],[.54,.125,.055],[.62,.105,.03],[.65,.07,.015]],20),armor,side*(female?.118:.132),0,.13);plate.rotation.z=side*-.08;if(mara){plate.scale.set(.78,.85,.83);plate.position.y=.045;plate.position.x=side*.138;}
   circuit(torso,glow,[[side*.08,.67,.145],[side*.21,.63,.15],[side*(female?.225:.27),.51,.15],[side*.17,.37,.16],[side*(female?.135:.17),.22,.137]]);
   circuit(torso,edge,[[side*.10,.37,.151],[side*.08,.27,.135],[side*.09,.17,.14]],.007);
   circuit(torso,glow,[[side*.20,.13,-.12],[side*.23,.35,-.14],[side*.22,.58,-.14],[side*.1,.66,-.12]],.009);
@@ -49,12 +58,17 @@ export function programModel(color=COLORS.cyan,{heavy=false,rider=false,frame='m
   circuit(head,edge,[[-.12,-.05,.10],[-.09,-.12,.115],[0,-.15,.10],[.09,-.12,.115],[.12,-.05,.10]],.012);
   for(const side of[-1,1]){oval(head,rubber,.067,side*.14,.018,0,.32,1,1);circuit(head,glow,[[side*.15,-.055,-.02],[side*.155,.035,-.035],[side*.13,.125,-.025]],.009)}
  }else{
-  oval(head,hair,.146,0,.10,-.025,1, .77, .94);if(female){for(const side of[-1,1]){
+  oval(head,hair,.146,0,.10,-.025,1, .77, .94);
+  if(mara){
+   circuit(head,hair,[[-.111,.152,.082],[-.054,.187,.104],[.046,.138,.147],[.119,.074,.105]],.026);
+   circuit(head,glow,[[-.148,.006,-.007],[-.154,-.044,.003],[-.145,-.076,.01]],.007);
+  }
+if(female){for(const side of[-1,1]){
    oval(head,hair,.105,side*.121,-.025,-.055,.40,side<0?2.05:1.45,.83);
    circuit(head,edge,[[side*.07,.176,-.055],[side*.124,.122,-.095],[side*.136,.014,-.10],[side*.122,-.112,-.087]],.005);
   }circuit(head,hair,[[-.12,.14,.05],[-.075,.175,.085],[.005,.17,.115],[.075,.12,.12]],.028)}
   rig.eyes=[];for(const side of[-1,1]){oval(head,face,.035,side*.142,-.01,.008,.4,1,.65);const eye=new T.Group();eye.position.set(side*.056,.025,.13);head.add(eye);oval(eye,new T.MeshStandardMaterial({color:0xcbd3d4,roughness:.65}),.023,0,0,0,1,.31,.42);oval(eye,rubber,.009,0,0,.012,.85,1,.35);rig.eyes.push(eye);circuit(head,hair,[[side*.025,.057,.125],[side*.057,.068,.12],[side*.08,.058,.102]],.006)}
-  oval(head,face,.028,0,-.015,.137,.55,1.25,1.1);oval(head,new T.MeshStandardMaterial({color:0x986a66,roughness:.8}),.027,0,-.078,.122,1.12,.23,.35);
+  oval(head,face,.028,0,-.015,.137,.55,1.25,1.1);oval(head,new T.MeshStandardMaterial({color:mara?0x804454:0x986a66,roughness:mara?.42:.8}),.027,0,-.078,.122,1.12,.23,.35);
  }
  for(const side of[-1,1]){
   const suffix=side<0?'L':'R',shoulder=new T.Group();shoulder.position.set(side*(heavy?.385:female?.265:.305),.625,0);torso.add(shoulder);
