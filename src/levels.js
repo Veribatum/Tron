@@ -80,42 +80,71 @@ const towerStage=(name,x,z,sx,sz,label,objective,radio,guards)=>({
  name,point:{x,z},spawn:{x:sx,z:sz},kind:'use',label,aria:name,objective,radio,guards
 });
 const towerFloor=(id,name,elevation,rooms,props,stages,shards=[],doors=[])=>prepare({
- id,name,elevation,bounds:{x:96,z:104},rooms,props,stages,shards,doors,encounters:[]
+ id,name,elevation,bounds:{x:124,z:120},rooms,props,stages,shards,doors,encounters:[]
 });
 export const WARDEN_FLOORS=[
  towerFloor('warden-intake','01 / INTAKE',0,[
-  rect('PUBLIC INTAKE',0,68,16,16),rect('CHECKPOINT SPINE',0,42,4,14),rect('INTAKE SORTER',-20,24,24,12),
-  rect('COLD STORAGE',-54,24,14,12),rect('BYPASS / NORTH',-48,-4,4,20),
+  rect('PUBLIC INTAKE',0,68,16,16),rect('CHECKPOINT SPINE',0,42,4,14),rect('INTAKE SORTER',-20,24,24,12,false),
+  rect('COLD STORAGE',-54,24,14,12),rect('SECURITY CONDUIT',-78,24,16,4,false),rect('CREDENTIALS ARCHIVE',-106,24,14,12),rect('OBSERVATION BAY',-106,3,10,10,false),rect('BYPASS / NORTH',-48,-4,4,20),
   rect('BYPASS / SOUTH',-12,-4,4,20),rect('CAPTIVE RECORDS',-30,-32,26,12),
-  rect('LIFT ACCESS',-8,-56,4,16),rect('ASCENT LIFT',-8,-78,12,10)
+  rect('LIFT ACCESS',-8,-56,4,16),rect('WEST STAIR LANDING',-8,-78,12,10)
  ],[
   {x:-22,z:24,w:5,d:4,h:2.6},{x:-43,z:-33,w:4,d:3,h:3},{x:-20,z:-25,w:3,d:4,h:2}
  ],[
-  towerStage('CAPTIVE RECORDS',-35,-32,0,74,'RELEASE','Fight through intake and release the captive identities','MARA: The service lift opens at the far end of records. I’ll get these programs out.',[[0,50,'disc'],[-32,28,'striker'],[-49,14,'disc'],[-35,-37,'sentinel'],[-14,-32,'disc']]),
-  towerStage('ASCENT LIFT',-8,-76,-28,-36,'ASCEND','Take the lift to the processing ring','ECHO: Going up. The Warden is burning the evidence upstairs.',[[-8,-64,'striker'],[-14,-75,'disc']])
- ],[{id:'intake-cache',x:-57,z:24,text:'An intake clerk kept spare charge for fugitives in cold storage.'}],
+  towerStage('CAPTIVE RECORDS',-35,-32,0,74,'RELEASE','Fight through intake and release the captive identities','MARA: The west stair lock is at the end of records. I’ll get these programs out.',[[0,50,'disc'],[-32,28,'striker'],[-81,24,'disc'],[-111,29,'striker'],[-49,14,'disc'],[-35,-37,'sentinel'],[-14,-32,'disc']]),
+  towerStage('WEST STAIR LOCK',-8,-76,-28,-36,'UNSEAL','Unseal the west stairway','ECHO: Walk the west stair around the shaft. The processing ring is thirty-two meters above you.',[[-8,-64,'striker'],[-14,-75,'disc']])
+ ],[{id:'intake-cache',x:-108,z:2,text:'An intake clerk kept spare charge for fugitives in cold storage.'}],
  [{id:'intake-lift-lock',x:-8,z:-54,w:4,d:.4,opensAt:1}]),
  towerFloor('warden-ring','02 / PROCESSING RING',32,[
-  rect('LIFT LANDING',-8,-78,12,10),rect('SERVICE CATWALK',-8,-52,4,20,false),
-  rect('VENT GALLERY',12,-28,24,12),rect('WEST SWITCHBACK',-8,0,4,20,false),
+  rect('WEST STAIR LANDING',-8,-78,12,10),rect('SERVICE CATWALK',-8,-52,4,20,false),
+  rect('VENT GALLERY',12,-28,24,12),rect('CONDENSER LINK',55,-28,23,4,false),rect('CONDENSER CONTROL',89,-28,15,12),rect('RELIEF ALCOVE',89,-48,9,9,false),rect('WEST SWITCHBACK',-8,0,4,20,false),
   rect('EAST SWITCHBACK',32,0,4,20,false),rect('SHUNT PLATFORM',12,28,26,12,false),
-  rect('TRANSFER TRUSS',32,52,4,16,false),rect('CROWN LIFT',32,76,12,12)
+  rect('TRANSFER TRUSS',32,52,4,16,false),rect('EAST STAIR LANDING',32,76,12,12)
  ],[
   {x:9,z:-28,w:4,d:4,h:3},{x:24,z:-32,w:3,d:3,h:2},{x:13,z:28,w:5,d:3,h:2}
  ],[
-  towerStage('COOLANT SHUNT',8,32,-8,-76,'DIVERT','Cross the processing ring and divert the purge coolant','ECHO: Purge paused. Take the transfer truss to the crown lift.',[[-8,-53,'disc'],[26,-27,'striker'],[-8,3,'disc'],[32,9,'striker'],[9,35,'sentinel']]),
-  towerStage('CROWN LIFT',32,78,19,33,'ASCEND','Fight across the transfer truss and take the crown lift','WARDEN: There is no district without its keeper.',[[32,51,'disc'],[36,74,'striker'],[27,79,'disc']])
- ],[{id:'ring-cache',x:-9,z:-32,text:'The ring crew left a service charge behind the west vent.'}],
+  towerStage('COOLANT SHUNT',8,32,-8,-76,'DIVERT','Cross the processing ring and divert the purge coolant','ECHO: Purge paused. Take the transfer truss to the east stair lock.',[[-8,-53,'disc'],[26,-27,'striker'],[64,-28,'disc'],[94,-22,'striker'],[-8,3,'disc'],[32,9,'striker'],[9,35,'sentinel']]),
+  towerStage('EAST STAIR LOCK',32,78,19,33,'UNSEAL','Fight across the transfer truss and unseal the east stairway','ECHO: The east stair wraps around the condenser. Follow it to the crown.',[[32,51,'disc'],[36,74,'striker'],[27,79,'disc']])
+ ],[{id:'ring-cache',x:88,z:-48,text:'The ring crew left a service charge behind the west vent.'}],
  [{id:'crown-lift-lock',x:32,z:48,w:4,d:.4,opensAt:1}]),
  towerFloor('warden-crown','03 / BROADCAST CROWN',72,[
   rect('CROWN ARRIVAL',32,76,12,12),rect('ANTENNA WALK',32,52,4,16,false),
-  rect('BROADCAST TERRACE',8,28,28,12,false),rect('ACCESS CATWALK',-16,0,4,20,false),
+  rect('BROADCAST TERRACE',8,28,28,12,false),rect('ANTENNA TRUSS',-48,28,32,4,false),rect('SIGNAL ARCHIVE',-92,28,16,12),rect('OBSERVATION NICHE',-92,7,9,10,false),rect('SIGNAL RETURN',-92,-19,4,20,false),rect('LOWER GANTRY',-58,-32,36,4,false),rect('ACCESS CATWALK',-16,0,4,20,false),
   rect('CONTROL VAULT',-16,-30,20,16),rect('OUTBOUND GANTRY',0,-55,4,13,false),
   rect('EXTRACTION DECK',0,-77,16,12,false)
  ],[
   {x:9,z:28,w:5,d:3,h:2.4},{x:-25,z:-33,w:3,d:5,h:3},{x:-5,z:-24,w:3,d:3,h:2}
  ],[
-  towerStage('WARDEN CONTROL VAULT',-18,-32,32,78,'SEVER','Fight through the crown and sever the Warden’s command link','MARA: The registry is ours. Move to extraction before his reserve cuts the gantry.',[[32,53,'disc'],[21,27,'striker'],[-10,23,'disc'],[-16,3,'striker'],[-20,-36,'sentinel'],[-2,-33,'disc']]),
+  towerStage('WARDEN CONTROL VAULT',-18,-32,32,78,'SEVER','Fight through the crown and sever the Warden’s command link','MARA: The registry is ours. Move to extraction before his reserve cuts the gantry.',[[32,53,'disc'],[21,27,'striker'],[-58,28,'disc'],[-97,33,'striker'],[-10,23,'disc'],[-16,3,'striker'],[-20,-36,'sentinel'],[-2,-33,'disc']]),
   towerStage('EXTRACTION DECK',0,-76,-9,-37,'EXTRACT','Reach the extraction deck and signal Mara','MARA: I see you. Get aboard.',[[0,-56,'striker'],[-9,-76,'disc'],[9,-78,'sentinel']])
- ],[],[{id:'extraction-lock',x:0,z:-57,w:4,d:.4,opensAt:1}])
+ ],[{id:'crown-cache',x:-92,z:7,text:'The broadcast operator left a charge pack behind the scope.'}],[{id:'signal-shutter',x:-92,z:-4,w:4,d:.4,permission:2},{id:'extraction-lock',x:0,z:-57,w:4,d:.4,opensAt:1}])
 ];
+
+export const WARDEN_PERMISSIONS=[
+ {x:-107,z:25,label:'INTAKE CREDENTIALS',objective:'Explore the west credentials archive and recover the prisoner release key.'},
+ {x:89,z:-28,label:'CONDENSER OVERRIDE',objective:'Search the east condenser control room for the coolant override.'},
+ {x:-92,z:26,label:'BROADCAST SIGNATURE',objective:'Cross the antenna truss and recover the broadcast signature.'}
+];
+const stair=(name,x,z,outerX,lower,upper)=>{
+ const side=Math.sign(z);
+ return {name,width:8,points:[
+  {x,y:lower,z},{x,y:lower+8,z:side*114},{x:outerX,y:lower+22,z:side*114},
+  {x:outerX,y:lower+22,z:side*98},{x,y:upper-5,z:side*98},{x,y:upper,z}
+ ]};
+};
+export const WARDEN_STAIRS=[
+ stair('WEST STAIR',-8,-86,-66,0,32),
+ stair('EAST STAIR',32,86,91,32,72)
+];
+
+// Leave matching openings in the mesh and camera collision at each stair mouth.
+for(const [index,link] of WARDEN_STAIRS.entries()){
+ const {x,z}=link.points[0],edge=Math.sign(z)*88,half=link.width/2;
+ for(const floor of WARDEN_FLOORS.slice(index,index+2)){
+  floor.walls=floor.walls.flatMap(wall=>{
+   if(wall.z!==edge||wall.d!==.25||Math.abs(wall.x-x)>=wall.w+half)return[wall];
+   return [[wall.x-wall.w,x-half],[x+half,wall.x+wall.w]].filter(([a,b])=>b>a).map(([a,b])=>({...wall,x:(a+b)/2,w:(b-a)/2}));
+  });
+  floor.cover=[...floor.walls,...floor.props];
+ }
+}

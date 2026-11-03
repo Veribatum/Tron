@@ -3,6 +3,7 @@ import {spawn} from 'node:child_process';
 import {mkdir} from 'node:fs/promises';
 import {setTimeout} from 'node:timers/promises';
 import {chromium} from 'playwright';
+import {WARDEN_STAIRS} from '../src/levels.js';
 const server=spawn(process.execPath,['scripts/serve.mjs','--port','8787'],{stdio:'ignore'});let browser;
 const timeout=globalThis.setTimeout(()=>{console.error('Browser verification exceeded seven minutes');server.kill();process.exit(1)},420000),errors=[];
 const button=(p,name)=>p.getByRole('button',{name,exact:true});
@@ -46,11 +47,21 @@ try{
  assert((await refuge.locator('#chapter').textContent()).includes('ARGON'));await button(refuge,'Board light jet').waitFor({state:'visible'});await shot(refuge,'skyport-boarding');await button(refuge,'Board light jet').tap();await refuge.locator('#cinematic').waitFor({state:'visible'});assert((await refuge.locator('#scene-title').textContent()).includes('MEMORY LATTICE'));await skipScenes(refuge);assert(await refuge.locator('#navigation').isVisible());saved=await refuge.evaluate(()=>JSON.parse(localStorage.getItem('gridrunner-profile-v1')));assert.equal(saved.checkpoint,5);await menu(refuge);await refuge.close();console.log('PASS legacy refuge save, actual Argon route/relay interaction, key save and explicit light-jet boarding');
  const jet=await open({isMobile:true,hasTouch:true});await jet.goto('http://127.0.0.1:8787');await jet.locator('#menu').waitFor({state:'visible'});await simulation(jet,'LIGHT JET ARENA');assert(await button(jet,'Fire light jet cannons').isVisible());assert(await jet.locator('#altitude').isVisible());assert(await jet.locator('#navigation').isVisible());assert((await jet.locator('#nav-label').textContent()).includes('UPLINK'));await jet.keyboard.down('w');await jet.keyboard.down(' ');await jet.waitForFunction(()=>parseInt(document.getElementById('altitude').textContent)>40);await jet.keyboard.up('w');await jet.waitForFunction(()=>Number(document.getElementById('score').textContent)>0);await jet.keyboard.up(' ');await controlsFit(jet,{width:844,height:390});await shot(jet,'light-jet-landscape');await jet.keyboard.down('ArrowRight');await jet.setViewportSize({width:390,height:844});await controlsFit(jet,{width:390,height:844});await shot(jet,'light-jet-portrait');await jet.keyboard.up('ArrowRight');await menu(jet);await jet.close();console.log('PASS playable light jet altitude/steering, real 3D cannon hits, target HUD and phone layouts');
  const spire=await open({isMobile:true,hasTouch:true});
- await spire.addInitScript(()=>localStorage.setItem('gridrunner-profile-v1',JSON.stringify({name:'RUNNER',color:'cyan',checkpoint:8,wardenFloor:1,wardenStage:0,cleared:false,bestDisc:0,bestCycle:0,started:true,seenScenes:[8]})));
+ await spire.addInitScript(()=>localStorage.setItem('gridrunner-profile-v1',JSON.stringify({name:'RUNNER',color:'cyan',checkpoint:8,wardenFloor:0,wardenStage:2,cleared:false,bestDisc:0,bestCycle:0,started:true,seenScenes:[8]})));
  await spire.goto('http://127.0.0.1:8787');
  await button(spire,'CONTINUE ESCAPE ↗').click();
  await spire.locator('#hud').waitFor({state:'visible'});
+ assert.equal(Number(await spire.locator('#hud').getAttribute('data-altitude')),0);
+ const west=WARDEN_STAIRS[0].points;
+ for(const [index,point] of west.slice(1,-1).entries()){
+  await walkTo(spire,point);
+  const height=Number(await spire.locator('#hud').getAttribute('data-altitude'));
+  assert(Math.abs(height-point.y)<1.6,'ascent has continuous world height');
+  if(index===1)await shot(spire,'spire-west-stair');
+ }
+ await walkTo(spire,{...west.at(-1),z:-83});
  assert((await spire.locator('#chapter').textContent()).includes('COOLANT SHUNT'));
+ assert((await spire.locator('#objective-text').textContent()).includes('condenser'));
  assert.equal(Number(await spire.locator('#hud').getAttribute('data-altitude')),32);
  await shot(spire,'spire-processing-ring');await spire.close();
  const epilogue=await open({isMobile:true,hasTouch:true});await epilogue.addInitScript(()=>localStorage.setItem('gridrunner-profile-v1',JSON.stringify({name:'CIRCUIT',color:'violet',checkpoint:6,checkpointScore:18000,storyVersion:4,cleared:true,wardenCleared:true,flynnFound:true,relayHacked:true,bestDisc:0,bestCycle:0,bestTank:0,started:true})));await epilogue.goto('http://127.0.0.1:8787');await button(epilogue,'EXPLORE ARGON ↗').click();await epilogue.locator('#cinematic').waitFor({state:'visible'});assert((await epilogue.locator('#scene-line').textContent()).includes('erasure order'));await shot(epilogue,'epilogue');await skipScenes(epilogue);assert((await epilogue.locator('#objective-text').textContent()).includes('free'));assert.equal(await epilogue.locator('#score').textContent(),'018000');await epilogue.close();assert.deepEqual(errors,[]);console.log('PASS resolved chapter epilogue resumes as city exploration with the saved score');

@@ -1,4 +1,4 @@
-import {CHAPTERS} from './world.js?v=9';
+import {CHAPTERS} from './world.js?v=10';
 const shot=(speaker,text,camera,look)=>({speaker,text,camera,look});
 export function sceneFor(chapter){
  const scenes=[
@@ -10,7 +10,7 @@ export function sceneFor(chapter){
   [shot('ECHO','The root key marked three erasure uplinks above Argon. Break their connection to the city, then follow my signal home.',[-12,48,153],[0,37,110]),shot('THE WARDEN','Unregistered aircraft. The city’s memory is under my protection.',[38,66,-74],[65,58,-103])],
   [shot('ARGON / FIRST FREE CYCLE','The aerial array is severed. The Warden’s ground reserve still has a copy of the erasure order.',[-14,95,75],[0,2,5]),shot('ECHO','Land at Skyport 07 and open the service lift. We need the captain’s bridge cipher to reach the isolation switch.',[42,6,-64],[34,1,-70])],
   [shot('DEPOT CONTROL','Armory release requires a registered champion. Enter the Grid. Light walls decide the match.',[15,26,53],[0,0,-10]),shot('ECHO','Outlast the riders, then take the champion’s exit. I’ll use the release code to unlock the siege tank.',[7,5,49],[0,1,35])],
-  [shot('ECHO','The registry is unlocked, but the Warden’s command link still owns every name in it. Break into his spire, free the captives and cut his broadcast from the crown.',[8,5,79],[0,1,57])]
+  [shot('ECHO','The Warden’s command link is at the top of that spire. Start in the west credentials archive. Its key opens the captive records.',[126,55,137],[0,35,0]),shot('MARA','I’ll take the captives out. Follow the stairs above intake and cut the broadcast from the crown.',[8,5,79],[0,1,57])]
  ];return{title:CHAPTERS[chapter],shots:scenes[chapter]||[]};
 }
 export const EPILOGUE_SCENE={title:'ARGON / FIRST FREE CYCLE',shots:[

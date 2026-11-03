@@ -1,7 +1,7 @@
 import * as T from '../vendor/three.module.js';
-import {CELL,roadPoint,FLIGHT_APPROACH} from './levels.js?v=9';
-import {cycleModel,tankModel,COLORS} from './art.js?v=9';
-import {campaignDoors} from './sim.js?v=9';
+import {CELL,roadPoint,FLIGHT_APPROACH,WARDEN_FLOORS,WARDEN_PERMISSIONS,WARDEN_STAIRS} from './levels.js?v=10';
+import {cycleModel,tankModel,COLORS} from './art.js?v=10';
+import {campaignDoors} from './sim.js?v=10';
 export function buildCampaignWorld(v,s,{black,steel,cyan,orange,dim}){
  const map=s.levelMap,road=!!map.road,stone=v.material(road?0x263340:0x1e303b,{roughness:.87}),floorMat=v.material(0x29424d,{roughness:.75,metalness:.25}),tiles=new T.InstancedMesh(new T.BoxGeometry(CELL,.14,CELL),floorMat,map.floor.size),dummy=new T.Object3D(),color=new T.Color();let index=0;
  for(const cell of map.floor.values()){dummy.position.set(cell.x,-.12,cell.z);dummy.updateMatrix();tiles.setMatrixAt(index,dummy.matrix);color.set(cell.room==='ROAD'?0x172b36:cell.room==='FREIGHT APRON'?0x344957:0x3b525c);tiles.setColorAt(index++,color)}v.root.add(tiles);tiles.receiveShadow=true;
@@ -19,19 +19,9 @@ export function buildCampaignWorld(v,s,{black,steel,cyan,orange,dim}){
    const {x,z}=stage.point,sign=v.textPanel(stage.name,6,.8);
    sign.position.set(x,2.1,z-1.3);v.root.add(sign);
    const mark=v.add(new T.RingGeometry(1.25,1.34,40),cyan,x,.06,z);mark.rotation.x=-Math.PI/2;
-   if(stage.label==='ASCEND'||stage.label==='EXTRACT'){
+   if(stage.label==='UNSEAL'||stage.label==='EXTRACT'){
     for(const side of[-1,1]){v.box(.44,4,.5,steel,x+side*2,2,z-2);v.box(.08,3.7,.1,cyan,x+side*1.72,2,z-1.73)}
     v.box(4.4,.36,.5,steel,x,4,z-2);
-   }
-  }
-  if(map.elevation>0){
-   const ground=v.material(0x0b202c);
-   v.box(620,1,620,ground,0,-map.elevation-.5,0);
-   for(let i=0;i<28;i++){
-    const angle=i*Math.PI/14,r=106+i%4*14,x=Math.sin(angle)*r,z=Math.cos(angle)*r,h=14+(i*23)%60,w=8+i%3*4;
-    v.box(w,h,w,black,x,h/2-map.elevation,z);
-    v.box(.14,h,.18,dim,x-w/2,h/2-map.elevation,z+w/2);
-    v.box(w,.08,.12,cyan,x,h-map.elevation,z+w/2);
    }
   }
  }else if(!road){
@@ -50,7 +40,81 @@ export function buildCampaignWorld(v,s,{black,steel,cyan,orange,dim}){
  }
  updateCampaignWorld(v,s);
 }
-export function updateCampaignWorld(v,s){if(!s.levelMap)return;const closed=new Set(campaignDoors(s).map(d=>d.id));for(const[id,g]of v.levelDoors||[])g.visible=closed.has(id);for(const[id,g]of v.levelShards||[]){g.visible=s.levelShards.some(q=>q.id===id);g.rotation.y=v.time;g.position.y=1+Math.sin(v.time*2)*.12}}
+export function buildSpireWorld(v,s,materials){
+ const {black,steel,cyan,orange,dim}=materials;
+ const ground=v.material(0x0b202c);
+ v.box(620,1,620,ground,0,-1,0);
+ for(let i=0;i<24;i++){
+  const angle=i*Math.PI/12,r=139+i%4*12,x=Math.sin(angle)*r,z=Math.cos(angle)*r,h=14+(i*23)%60,w=8+i%3*4;
+  v.box(w,h,w,black,x,h/2,z);
+  v.box(.14,h,.18,dim,x-w/2,h/2,z+w/2);
+  v.box(w,.08,.12,cyan,x,h,z+w/2);
+ }
+ v.spireDecks=WARDEN_FLOORS.map((map,index)=>{
+  const first=v.root.children.length;
+  buildCampaignWorld(v,{...s,levelMap:map,levelStage:s.towerProgress[index],levelShards:[]},materials);
+  const q=WARDEN_PERMISSIONS[index],key=v.add(new T.OctahedronGeometry(.65),orange,q.x,1.3,q.z);
+  const sign=v.textPanel(q.label,6,.74);sign.position.set(q.x,2.6,q.z-2);v.root.add(sign);
+  const deck=new T.Group();
+  deck.add(...v.root.children.slice(first));deck.position.y=map.elevation;v.root.add(deck);
+  return {doors:v.levelDoors,caches:v.levelShards,key};
+ });
+ for(const [index,link] of WARDEN_STAIRS.entries()){
+  const points=link.points;
+  for(let i=0;i<points.length-1;i++){
+   const a=points[i],b=points[i+1],dx=b.x-a.x,dz=b.z-a.z,dy=b.y-a.y,length=Math.hypot(dx,dy,dz);
+   const flight=new T.Group();flight.position.set((a.x+b.x)/2,(a.y+b.y)/2-.15,(a.z+b.z)/2);
+   flight.rotation.set(-Math.atan2(dy,Math.hypot(dx,dz)),Math.atan2(dx,dz),0,'YXZ');v.root.add(flight);
+   v.box(link.width,.35,length,black,0,-.28,0,flight);
+   if(dy){
+    const run=Math.hypot(dx,dz),count=Math.ceil(Math.abs(dy)/.26),tread=run/count;
+    const steps=new T.InstancedMesh(new T.BoxGeometry(link.width,.32,tread+.025),steel,count);
+    const edge=new T.InstancedMesh(new T.BoxGeometry(link.width-.35,.028,.047),dim,count);
+    const matrix=new T.Matrix4(),yaw=Math.atan2(dx,dz),step=new T.Vector3();
+    steps.rotation.y=edge.rotation.y=yaw;
+    steps.position.set(a.x,a.y,a.z);edge.position.copy(steps.position);
+    for(let j=0;j<count;j++){
+     const rise=(j+.5)*dy/count;
+     step.set(0,rise-.16,(j+.5)*tread);matrix.makeTranslation(step.x,step.y,step.z);steps.setMatrixAt(j,matrix);
+     matrix.makeTranslation(0,rise+.019,(j+(dy>0?0:1))*tread);edge.setMatrixAt(j,matrix);
+    }
+    v.root.add(steps,edge);
+   }else v.box(link.width,.45,length,steel,0,-.05,0,flight);
+   for(const side of[-1,1]){
+    const x=side*link.width/2;
+    v.box(.1,.12,length,cyan,x,1,0,flight);
+    v.box(.1,.06,length,dim,x,.32,0,flight);
+    for(let z=-length/2;z<length/2;z+=4)v.box(.14,1,.14,steel,x,.5,z,flight);
+   }
+   if(!dy)for(let z=-length/2+1;z<length/2;z+=2)v.box(link.width-.45,.04,.12,dim,0,.23,z,flight);
+  }
+  for(const q of points.slice(1,-1)){
+   v.box(link.width,.5,link.width,steel,q.x,q.y-.28,q.z);
+   v.box(.7,q.y,.7,black,q.x-link.width/2+.4,q.y/2,q.z);
+  }
+  const q=points[0],bar=v.box(link.width,2.8,.16,orange,q.x,q.y+1.4,q.z+Math.sign(q.z)*.6);
+  v.spireDecks[index].gate=bar;
+ }
+ // The open shaft gives the lower deck a view of both higher decks and stairs.
+ const shaft=v.add(new T.CylinderGeometry(5,5,80,8),black,49,40,0);
+ for(let y=4;y<80;y+=6){
+  const band=v.add(new T.TorusGeometry(5.1,.085,6,24),y%12===4?cyan:dim,shaft.position.x,y,0);
+  band.rotation.x=Math.PI/2;
+ }
+}
+export function updateCampaignWorld(v,s){
+ if(!s.levelMap)return;
+ if(v.spireDecks){
+  v.spireDecks.forEach(({doors,caches,key,gate},index)=>{
+   const stage=s.towerProgress[index];
+   for(const d of WARDEN_FLOORS[index].doors)doors.get(d.id).visible=d.permission!==undefined?!s.towerPermissions.has(d.permission):stage<d.opensAt;
+   for(const [id,g] of caches){g.visible=!s.shardsFound.has(id);g.rotation.y=v.time;g.position.y=1+Math.sin(v.time*2)*.12}
+   key.visible=stage===0&&!s.towerPermissions.has(index);key.rotation.y=v.time;
+   if(gate)gate.visible=stage<2;
+  });
+  return;
+ }
+ const closed=new Set(campaignDoors(s).map(d=>d.id));for(const[id,g]of v.levelDoors||[])g.visible=closed.has(id);for(const[id,g]of v.levelShards||[]){g.visible=s.levelShards.some(q=>q.id===id);g.rotation.y=v.time;g.position.y=1+Math.sin(v.time*2)*.12}}
 export function powerModel(){const g=new T.Group(),steel=new T.MeshStandardMaterial({color:0x203746,metalness:.6,roughness:.4}),light=new T.MeshBasicMaterial({color:0xffa868});const base=new T.Mesh(new T.CylinderGeometry(1.6,1.8,1,8),steel);base.position.y=.5;g.add(base);const core=new T.Mesh(new T.OctahedronGeometry(1.25),light);core.position.y=2.1;g.add(core);g.userData.core=core;for(const y of[1.2,2.8]){const ring=new T.Mesh(new T.TorusGeometry(1.65,.07,6,32),light);ring.rotation.x=Math.PI/2;ring.position.y=y;g.add(ring)}return g}
 export function buildFlightChannels(v,steel,cyan){
  for(const q of FLIGHT_APPROACH.filter((_,i)=>i%2===1)){const g=new T.Group();g.position.set(q.x,0,q.z);v.root.add(g);for(const side of[-1,1]){v.box(9,28,11,steel,side*30,14,0,g);v.box(.08,24,.09,cyan,side*25.4,14,5.6,g)}v.box(65,1.2,8,steel,0,70,0,g);v.box(62,.08,.1,cyan,0,69.3,4.1,g)}

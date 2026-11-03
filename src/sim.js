@@ -1,6 +1,7 @@
-import {LEVELS,LEVEL_VERSION,CELL,floorContains,floorRoute,roadPoint,nearestRoad,FLIGHT_APPROACH,WARDEN_FLOORS} from './levels.js?v=9';
-import {CLIPS} from './motion.js?v=9';
-import {CITY_BOUNDS,SKY_BOUNDS,CITY_COVER,CITY_ENTRY,CITY_RELAY,SKYPORT,REFUGE_EXIT,PATROL_ROUTES,CIVIC_ROUTES,SKY_TOWERS,SKY_CORES,SKY_EXIT,ARGON_ACCESS,ARGON_RETURN,ARGON_BRIDGE,ARGON_SERVICE_SPAN,ARGON_SERVICE_CACHE,ARGON_RECOVERY} from './world.js?v=9';
+import {LEVELS,LEVEL_VERSION,CELL,floorContains,floorRoute,roadPoint,nearestRoad,FLIGHT_APPROACH,WARDEN_FLOORS,WARDEN_PERMISSIONS,WARDEN_STAIRS} from './levels.js?v=10';
+import {moveSpire,stairNavigation} from './spire.js?v=10';
+import {CLIPS} from './motion.js?v=10';
+import {CITY_BOUNDS,SKY_BOUNDS,CITY_COVER,CITY_ENTRY,CITY_RELAY,SKYPORT,REFUGE_EXIT,PATROL_ROUTES,CIVIC_ROUTES,SKY_TOWERS,SKY_CORES,SKY_EXIT,ARGON_ACCESS,ARGON_RETURN,ARGON_BRIDGE,ARGON_SERVICE_SPAN,ARGON_SERVICE_CACHE,ARGON_RECOVERY} from './world.js?v=10';
 export {CITY_BOUNDS,SKY_BOUNDS,CITY_COVER,CITY_RELAY,SKYPORT,REFUGE_EXIT,SKY_TOWERS,SKY_EXIT};
 export const VERSION=1;
 export const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -19,7 +20,7 @@ export const isVehicle=s=>!s.onFoot&&(s.chapter===1||s.chapter===2||s.chapter===
 export const isCycle=s=>(s.chapter===1||s.chapter===7)&&isVehicle(s);
 export const isTank=s=>s.chapter===2&&isVehicle(s);
 export const boundsOf=s=>s.levelMap?.bounds||[DISC_BOUNDS,CYCLE_BOUNDS,TANK_BOUNDS,REFUGE_BOUNDS,CITY_BOUNDS,SKY_BOUNDS,CITY_BOUNDS,CYCLE_BOUNDS][s.chapter];
-export const campaignDoors=s=>s.levelMap?s.levelMap.doors.filter(d=>d.power?s.enemies.some(e=>e.id===d.power&&e.alive):s.levelStage<d.opensAt):[];
+export const campaignDoors=s=>s.levelMap?s.levelMap.doors.filter(d=>d.permission!==undefined?!s.towerPermissions?.has(d.permission):d.power?s.enemies.some(e=>e.id===d.power&&e.alive):s.levelStage<d.opensAt):[];
 const gridPylons=[{x:-27,z:6,w:3,d:15,h:3},{x:27,z:6,w:3,d:15,h:3},{x:0,z:-35,w:8,d:3,h:3}];
 const closedCityCover=[...CITY_COVER,{x:0,z:7,w:3,d:.2,h:3.1}];
 export const coverOf=s=>s.levelMap?[...s.levelMap.cover,...campaignDoors(s)]:[COVER,[],TANK_COVER,REFUGE_COVER,CITY_COVER,[],s.argonStage<2&&!s.profile.cleared?closedCityCover:CITY_COVER,s.profile.gridHeat===1?gridPylons:[]][s.chapter];
@@ -39,9 +40,9 @@ export function createRun({mode='story',profile=newProfile(),seed=7319}={}){
  enterChapter(s,s.chapter);return s;
 }
 export function enterChapter(s,n){
- s.chapter=n;s.navCache=null;s.cityNav=null;s.argonStage=0;s.onBridge=false;s.levelMap=null;s.onFoot=false;s.levelStage=0;s.flightLeg=0;s.finished=false;s.dead=false;s.chapterTime=0;s.enemies=[];s.discs=[];s.shells=[];s.bolts=[];s.cores=[];s.citizens=[];s.trails=[];s.archiveRead=!!s.profile.flynnFound;s.relayHacked=isCity(s)&&!!s.profile.relayHacked;s.exposure=0;s.searchTime=0;s.cityAlarms=0;s.crouching=false;s.scanner={x:0,z:50};s.pickups=[];s.wave=0;s.gate=false;s.waveDelay=0;s.player={id:'player',x:n===6&&!s.profile.cleared?37:0,z:[26,42,65,16,73,145,s.profile.cleared?73:-69,42][n],y:n===5?38:0,pitch:0,yaw:Math.PI,turretYaw:Math.PI,hp:100,energy:100,attack:0,dash:0,pulse:0,shield:0,invuln:0,stagger:0,action:0,speed:n===1?15:n===5?26:0,trailTime:0,trailStart:null,alive:true};
+ s.chapter=n;s.towerTransit=null;s.navCache=null;s.cityNav=null;s.argonStage=0;s.onBridge=false;s.levelMap=null;s.onFoot=false;s.levelStage=0;s.flightLeg=0;s.finished=false;s.dead=false;s.chapterTime=0;s.enemies=[];s.discs=[];s.shells=[];s.bolts=[];s.cores=[];s.citizens=[];s.trails=[];s.archiveRead=!!s.profile.flynnFound;s.relayHacked=isCity(s)&&!!s.profile.relayHacked;s.exposure=0;s.searchTime=0;s.cityAlarms=0;s.crouching=false;s.scanner={x:0,z:50};s.pickups=[];s.wave=0;s.gate=false;s.waveDelay=0;s.player={id:'player',x:n===6&&!s.profile.cleared?37:0,z:[26,42,65,16,73,145,s.profile.cleared?73:-69,42][n],y:n===5?38:0,pitch:0,yaw:Math.PI,turretYaw:Math.PI,hp:100,energy:100,attack:0,dash:0,pulse:0,shield:0,invuln:0,stagger:0,action:0,speed:n===1?15:n===5?26:0,trailTime:0,trailStart:null,alive:true};
  if(s.mode==='story'&&n<3)initCampaign(s);
- else if(n===8)loadTowerFloor(s,clamp(Math.trunc(s.profile.wardenFloor)||0,0,2),clamp(Math.trunc(s.profile.wardenStage)||0,0,1));
+ else if(n===8)initTower(s);
  else if(n===1||n===7)for(let i=0;i<(n===7&&s.profile.gridHeat===1?4:3);i++)s.enemies.push({id:'bike-'+i,type:'bike',x:(i-1)*32,z:-22-i%2*8,yaw:i%2?0:Math.PI/2,hp:70,maxHp:70,alive:true,speed:15+i,fire:4+i,turn:0,trailTime:0,trailStart:null,age:0});
  else if(n===2)for(const [i,x,z]of[[0,-35,5],[1,33,-27],[2,0,-55]])s.enemies.push({id:'tank-'+i,type:'tank',x,z,yaw:0,turretYaw:0,hp:160,maxHp:160,alive:true,speed:0,attack:2+i*.8,windup:0,action:0,path:[],pathTime:0,age:0});
  else if(n===4||n===6)spawnCity(s);
@@ -56,17 +57,21 @@ function pendingTick(s,a){
  const pending=a.pending;if(!pending||!a.alive||a.animAge<pending.impact)return;a.pending=null;
  if(pending.kind==='throw'){
   const target=s.enemies.find(e=>e.id===pending.target&&e.alive),yaw=target?Math.atan2(target.x-a.x,target.z-a.z):pending.yaw,v=forward(yaw),side={x:Math.cos(yaw),z:-Math.sin(yaw)},muzzle=CLIPS.throw.muzzle;
-  s.discs.push({id:'disc-'+s.serial++,owner:a.id,x:a.x+v.x*muzzle[2]+side.x*muzzle[0],z:a.z+v.z*muzzle[2]+side.z*muzzle[0],height:isCycle(s)?1.05:muzzle[1],dx:v.x,dz:v.z,age:0,returning:false,bounces:0,hit:[],damage:isCycle(s)?28:32,speed:isCycle(s)?65:34});emit(s,'throw',{owner:a.id,x:a.x,z:a.z});
+  s.discs.push({id:'disc-'+s.serial++,owner:a.id,x:a.x+v.x*muzzle[2]+side.x*muzzle[0],z:a.z+v.z*muzzle[2]+side.z*muzzle[0],height:isCycle(s)?1.05:muzzle[1]+(s.levelMap?.elevation||0),dx:v.x,dz:v.z,age:0,returning:false,bounces:0,hit:[],damage:isCycle(s)?28:32,speed:isCycle(s)?65:34});emit(s,'throw',{owner:a.id,x:a.x,z:a.z});
  }else if(pending.kind==='melee'){
-  const target=s.enemies.find(e=>e.id===pending.target&&e.alive);if(target&&dist(a,target)<3.5&&clearLine(s,a,target)){hurt(s,target,22+pending.combo*6,true);target.stagger=.5}emit(s,'slash',{x:a.x,z:a.z,yaw:a.yaw,combo:pending.combo});
+  const target=s.enemies.find(e=>e.id===pending.target&&e.alive);if(target&&dist(a,target)<3.5&&clearLine(s,a,target)){hurt(s,target,22+pending.combo*6,true);target.stagger=.5}emit(s,'slash',{x:a.x,y:s.levelMap?.elevation||0,z:a.z,yaw:a.yaw,combo:pending.combo});
  }else if(pending.kind==='pulse'){
-  for(const e of s.enemies)if(e.alive&&dist(a,e)<9&&clearLine(s,a,e)){hurt(s,e,25,true);e.stagger=e.type==='sentinel'?.8:2.5}emit(s,'pulse',{x:a.x,z:a.z});
+  for(const e of s.enemies)if(e.alive&&dist(a,e)<9&&clearLine(s,a,e)){hurt(s,e,25,true);e.stagger=e.type==='sentinel'?.8:2.5}emit(s,'pulse',{x:a.x,y:(s.levelMap?.elevation||0)+.12,z:a.z});
  }else if(pending.kind==='level'){performCampaignAction(s,pending.id)}else if(pending.kind==='archive'&&canAccessArchive(s)){s.profile.flynnFound=true;s.archiveRead=true;s.gate=true;emit(s,'archive')}else if(pending.kind==='relay'&&canAccessRelay(s)){s.relayHacked=true;if(s.mode==='story')s.profile.relayHacked=true;s.score+=s.cityAlarms?300:800;if(s.mode==='story')s.profile.checkpointScore=s.score;emit(s,'relay')}else if(pending.kind==='board'&&canBoardJet(s)){if(s.mode==='story')enterChapter(s,5);else finish(s)}else if(pending.kind==='mara'){emit(s,'mara')}
 }
 
 export function walkable(s,x,z,r=.5){const b=boundsOf(s);if(s.levelMap&&!floorContains(s.levelMap,x,z,r))return false;if(Math.abs(x)>b.x-r||Math.abs(z)>b.z-r)return false;return !(s.levelMap?[...s.levelMap.props,...campaignDoors(s)]:coverOf(s)).some(o=>Math.abs(x-o.x)<o.w+r&&Math.abs(z-o.z)<o.d+r)}
 export function clearLine(s,a,b,r=.3){const n=Math.ceil(dist(a,b)/.45);for(let i=1;i<n;i++){const t=i/n;if(!walkable(s,a.x+(b.x-a.x)*t,a.z+(b.z-a.z)*t,r))return false}return true}
 export function move(s,a,dx,dz){
+ if(a===s.player&&s.chapter===8){
+  moveSpire(s,dx,dz,(x,z)=>walkable(s,x,z),index=>enterTowerDeck(s,index));
+  return;
+ }
  if(a===s.player&&s.onBridge&&s.chapter===4){
   const {x,width}=ARGON_SERVICE_SPAN;
   a.x=clamp(a.x+dx,x-width,x+width);a.z+=dz;return;
@@ -79,7 +84,8 @@ export function routeTo(s,a,b){
  const costs=nodes.map(()=>Infinity),done=new Set(),prev=[];costs[0]=0;for(let n=0;n<nodes.length;n++){let u=-1;for(let i=0;i<nodes.length;i++)if(!done.has(i)&&(u<0||costs[i]<costs[u]))u=i;if(u<0||!Number.isFinite(costs[u]))break;if(u===1){const out=[];for(let i=1;i>0;i=prev[i])out.unshift(nodes[i]);return out}done.add(u);for(let j=0;j<nodes.length;j++)if(!done.has(j)&&clearLine(s,nodes[u],nodes[j],radius)){const next=costs[u]+dist(nodes[u],nodes[j]);if(next<costs[j]){costs[j]=next;prev[j]=u}}}return[];
 }
 function spawnWave(s){s.wave++;const positions=[[-22,15],[22,14],[0,-27],[-28,-9],[28,-12]];for(let i=positions.length-1;i>0;i--){const j=Math.floor(s.random()*(i+1));[positions[i],positions[j]]=[positions[j],positions[i]]}const count=s.wave===1?2:s.wave===2?3:4;s.enemies=positions.slice(0,count).map(([x,z],i)=>({id:'guard-'+s.wave+'-'+i,type:s.wave===3&&i===3?'sentinel':i%2?'striker':'disc',x,z,yaw:0,hp:s.wave===3&&i===3?140:55+s.wave*8,maxHp:s.wave===3&&i===3?140:55+s.wave*8,alive:true,attack:1.5+i*.5,windup:0,stagger:0,action:0,path:[],pathTime:0,age:0}));emit(s,'wave',{wave:s.wave});}
-export function targetOf(s){if(s.chapter===5)return flightTarget(s);const p=s.player;if(p.y>2.5)return null;return s.enemies.filter(e=>e.alive&&dist(p,e)<(isTank(s)?72:isCycle(s)?48:34)&&clearLine(s,p,e)).sort((a,b)=>dist(a,p)-dist(b,p))[0]||null}
+const onCombatDeck=s=>s.chapter===8?!s.towerTransit:s.player.y<2.5;
+export function targetOf(s){if(s.chapter===5)return flightTarget(s);const p=s.player;if(!onCombatDeck(s))return null;return s.enemies.filter(e=>e.alive&&dist(p,e)<(isTank(s)?72:isCycle(s)?48:34)&&clearLine(s,p,e)).sort((a,b)=>dist(a,p)-dist(b,p))[0]||null}
 export function canAccessArchive(s){return s.chapter===3&&!s.archiveRead&&dist(s.player,ARCHIVE)<3.2}
 export function canAccessRelay(s){return s.chapter===4&&!s.relayHacked&&!cityAccessTarget(s)&&dist(s.player,CITY_RELAY)<3.6}
 export function canBoardJet(s){return s.chapter===4&&s.relayHacked&&dist(s.player,SKYPORT)<6}
@@ -98,13 +104,13 @@ export function act(s,action){
   if(action==='pulse'&&p.pulse<=0&&p.energy>=35){p.energy-=35;p.pulse=9;p.shield=2.8;emit(s,'shield',{x:p.x,z:p.z});return true}
   return false;
  }
- if(action==='attack'&&p.y<2.5){
+ if(action==='attack'&&onCombatDeck(s)){
   if(p.attack>0||p.pending||(!target||isVehicle(s)||dist(p,target)>=3.2)&&s.discs.some(d=>d.owner==='player'))return false;
   if(!isVehicle(s)&&target&&dist(p,target)<3.2){s.combo=s.comboTime>0?s.combo%3+1:1;s.comboTime=1.8;p.yaw=Math.atan2(target.x-p.x,target.z-p.z);const clip='slash'+s.combo;playClip(p,clip);p.attack=CLIPS[clip].duration;p.pending={kind:'melee',target:target.id,combo:s.combo,impact:CLIPS[clip].impact};}
   else{const yaw=target?Math.atan2(target.x-p.x,target.z-p.z):p.yaw;if(!isVehicle(s))p.yaw=yaw;playClip(p,'throw');p.attack=.64;p.pending={kind:'throw',target:target?.id,yaw,impact:CLIPS.throw.impact};}return true;
  }
- if(action==='dash'&&!isVehicle(s)&&p.dash<=0&&p.energy>=23){p.energy-=23;p.dash=1.8;p.invuln=.4;p.dashTime=.23;p.pending=null;p.attack=Math.min(p.attack,.2);playClip(p,'dodge');const d=forward(p.yaw);p.dashX=d.x;p.dashZ=d.z;emit(s,'dash',{x:p.x,z:p.z});return true}
- if(action==='pulse'&&p.y<2.5&&!isVehicle(s)&&!p.pending&&p.pulse<=0&&p.energy>=40){p.energy-=40;p.pulse=9;playClip(p,'pulse');p.pending={kind:'pulse',impact:CLIPS.pulse.impact};return true}
+ if(action==='dash'&&!isVehicle(s)&&p.dash<=0&&p.energy>=23){p.energy-=23;p.dash=1.8;p.invuln=.4;p.dashTime=.23;p.pending=null;p.attack=Math.min(p.attack,.2);playClip(p,'dodge');const d=forward(p.yaw);p.dashX=d.x;p.dashZ=d.z;emit(s,'dash',{x:p.x,y:(p.y||0)+.12,z:p.z});return true}
+ if(action==='pulse'&&onCombatDeck(s)&&!isVehicle(s)&&!p.pending&&p.pulse<=0&&p.energy>=40){p.energy-=40;p.pulse=9;playClip(p,'pulse');p.pending={kind:'pulse',impact:CLIPS.pulse.impact};return true}
 
  return false;
 }
@@ -115,12 +121,12 @@ function hurt(s,a,n,playerHit=false){
 }
 function discsTick(s,dt){for(const d of s.discs){d.age+=dt;const from={x:d.x,z:d.z};if(d.owner==='player'&&(d.age>.67||d.returning)){d.returning=true;const n=dist(d,s.player)||1;d.dx=(s.player.x-d.x)/n;d.dz=(s.player.z-d.z)/n;if(n<.75){d.gone=true;s.player.catchAge=0;emit(s,'catch',{x:s.player.x,z:s.player.z});continue}}
   const nx=d.x+d.dx*d.speed*dt,nz=d.z+d.dz*d.speed*dt;if(!walkable(s,nx,nz,.15)){if(d.owner!=='player'){d.gone=true;continue}if(d.returning){d.x=nx;d.z=nz}else{if(!walkable(s,nx,d.z,.15))d.dx=-d.dx;else d.dz=-d.dz;d.bounces++;d.returning=d.bounces>1;emit(s,'ricochet',{x:d.x,z:d.z})}}else{d.x=nx;d.z=nz}
-  const victims=d.owner==='player'?s.enemies:[s.player];for(const a of victims)if(a.alive&&(a.y||0)<2.5&&!d.hit.includes(a.id)&&pointSegment(a,from,d)<(s.chapter?1.4:.95)){if(hurt(s,a,d.damage,d.owner==='player')){d.hit.push(a.id);if(d.owner!=='player')d.gone=true;else if(!isVehicle(s))a.stagger=.4}}
+  const victims=d.owner==='player'?s.enemies:[s.player];for(const a of victims)if(a.alive&&(s.chapter===8?!s.towerTransit:(a.y||0)<2.5)&&!d.hit.includes(a.id)&&pointSegment(a,from,d)<(s.chapter?1.4:.95)){if(hurt(s,a,d.damage,d.owner==='player')){d.hit.push(a.id);if(d.owner!=='player')d.gone=true;else if(!isVehicle(s))a.stagger=.4}}
   if(d.age>2.8)d.gone=true;
  }s.discs=s.discs.filter(d=>!d.gone)}
 function guardTick(s,e,dt){
  e.age+=dt;e.action=Math.max(0,e.action-dt);e.stagger=Math.max(0,e.stagger-dt);if(e.stagger>0)return;const p=s.player,d=dist(e,p);e.yaw=Math.atan2(p.x-e.x,p.z-e.z);
- if(e.windup>0){e.windup-=dt;if(e.windup<=0){const clip=e.type==='disc'?'throw':e.type==='sentinel'?'slash3':'slash1';playClip(e,clip,CLIPS[clip].impact);if(e.type==='disc'){const v=forward(e.yaw);s.discs.push({id:'disc-'+s.serial++,owner:e.id,x:e.x,z:e.z,dx:v.x,dz:v.z,age:0,hit:[],damage:15,speed:20});emit(s,'throw',{owner:e.id,x:e.x,z:e.z})}else if(d<3.4&&clearLine(s,e,p)){hurt(s,p,e.type==='sentinel'?26:18)}e.action=.4;e.attack=e.type==='sentinel'?1.7:2;emit(s,'enemyStrike',{x:e.x,z:e.z})}return}
+ if(e.windup>0){e.windup-=dt;if(e.windup<=0){const clip=e.type==='disc'?'throw':e.type==='sentinel'?'slash3':'slash1';playClip(e,clip,CLIPS[clip].impact);if(e.type==='disc'){const v=forward(e.yaw);s.discs.push({id:'disc-'+s.serial++,owner:e.id,x:e.x,z:e.z,dx:v.x,dz:v.z,age:0,hit:[],damage:15,speed:20,height:(s.levelMap?.elevation||0)+1.37});emit(s,'throw',{owner:e.id,x:e.x,z:e.z})}else if(d<3.4&&clearLine(s,e,p)){hurt(s,p,e.type==='sentinel'?26:18)}e.action=.4;e.attack=e.type==='sentinel'?1.7:2;emit(s,'enemyStrike',{x:e.x,z:e.z})}return}
  const reach=e.type==='disc'?14:2.5;if(d>reach||!clearLine(s,e,p)){
   e.pathTime-=dt;if(e.pathTime<=0||!e.path.length){e.path=routeTo(s,e,p);e.pathTime=.65}
   const goal=e.path[0];if(goal){const n=dist(e,goal)||1,step=Math.min(n,dt*(e.type==='sentinel'?3.2:4.2));move(s,e,(goal.x-e.x)/n*step,(goal.z-e.z)/n*step);if(n<.5)e.path.shift()}
@@ -324,7 +330,7 @@ export function advance(s,seconds,input={}){
  if(isCycle(s)){bikeTick(s,p,dt,input);for(const e of s.enemies)bikeTick(s,e,dt,input);s.trails=s.trails.filter(t=>s.time-t.born<(s.levelMap?4:16)).slice(-1600)}
  else if(s.chapter===5){s.trails=s.trails.filter(t=>s.time-t.born<8).slice(-1600);jetTick(s,p,dt,input);for(const e of s.enemies)jetTick(s,e,dt);boltsTick(s,dt)}
  else if(isTank(s)){tankTick(s,p,dt,input);for(const e of s.enemies)if(e.type==='tank')tankTick(s,e,dt);shellsTick(s,dt)}
- else{p.energy=clamp(p.energy+dt*10,0,100);let x=input.x||0,z=input.z||0,n=Math.hypot(x,z);p.moving=n>.08;if(p.dashTime>0){p.dashTime-=dt;move(s,p,p.dashX*dt*23,p.dashZ*dt*23)}else if(p.moving){x/=Math.max(1,n);z/=Math.max(1,n);if(!p.pending)p.yaw=Math.atan2(x,z);move(s,p,x*dt*(p.crouching?3:7),z*dt*(p.crouching?3:7))}if(isCity(s)){if(!s.profile.cleared)bridgeTick(s);cityTick(s,dt);}else for(const e of s.enemies)if(e.alive&&(!s.levelMap||dist(p,e)<(s.chapter===8?36:70)))guardTick(s,e,dt);for(const orb of s.pickups){orb.age+=dt;if(p.y<2&&dist(orb,p)<2){p.hp=clamp(p.hp+9,0,100);p.energy=clamp(p.energy+18,0,100);orb.gone=true;emit(s,'pickup',{x:orb.x,z:orb.z})}}s.pickups=s.pickups.filter(o=>!o.gone)}
+ else{p.energy=clamp(p.energy+dt*10,0,100);let x=input.x||0,z=input.z||0,n=Math.hypot(x,z);p.moving=n>.08;if(p.dashTime>0){p.dashTime-=dt;move(s,p,p.dashX*dt*23,p.dashZ*dt*23)}else if(p.moving){x/=Math.max(1,n);z/=Math.max(1,n);if(!p.pending)p.yaw=Math.atan2(x,z);move(s,p,x*dt*(p.crouching?3:7),z*dt*(p.crouching?3:7))}if(isCity(s)){if(!s.profile.cleared)bridgeTick(s);cityTick(s,dt);}else for(const e of s.enemies)if(e.alive&&!s.towerTransit&&(!s.levelMap||dist(p,e)<(s.chapter===8?36:70)))guardTick(s,e,dt);for(const orb of s.pickups){orb.age+=dt;if((s.chapter===8?!s.towerTransit:p.y<2)&&dist(orb,p)<2){p.hp=clamp(p.hp+9,0,100);p.energy=clamp(p.energy+18,0,100);orb.gone=true;emit(s,'pickup',{x:orb.x,z:orb.z})}}s.pickups=s.pickups.filter(o=>!o.gone)}
  if(s.dead)return s.events;pendingTick(s,p);if(s.player!==p||s.finished)return s.events;if(input.attack)act(s,'attack');if(input.dash)act(s,'dash');if(input.pulse)act(s,'pulse');if(input.interact)act(s,'interact');discsTick(s,dt);if(s.dead)return s.events;
  if(s.levelMap){tickCampaign(s,dt);return s.events}
  if(s.chapter===3){if(s.archiveRead&&dist(p,REFUGE_EXIT)<3)enterChapter(s,4);return s.events}
@@ -366,21 +372,57 @@ function guard(id,x,z,type='disc'){
  const hp=type==='sentinel'?125:type==='striker'?70:62;
  return{id,type,x,z,yaw:Math.PI,hp,maxHp:hp,alive:true,attack:2,windup:0,stagger:0,action:0,path:[],pathTime:0,age:0};
 }
+function towerPermission(s){
+ const index=s.towerFloor;
+ return s.towerProgress[index]===0&&!s.towerPermissions.has(index)?WARDEN_PERMISSIONS[index]:null;
+}
 function spawnTowerGuards(s){
  const stage=s.levelMap.stages[s.levelStage];
- s.enemies=stage.guards.map(([x,z,type],i)=>guard('warden-'+s.towerFloor+'-'+s.levelStage+'-'+i,x,z,type));
+ const index=s.towerFloor;
+ s.enemies=s.towerProgress[index]>=2?[]:stage.guards.map(([x,z,type],i)=>({
+  ...guard('warden-'+index+'-'+s.levelStage+'-'+i,x,z,type),y:s.levelMap.elevation
+ }));
 }
-function loadTowerFloor(s,index,stage){
- s.towerFloor=index;s.levelStage=stage;s.navCache=null;
+function initTower(s){
+ const profile=s.profile,index=clamp(Math.trunc(profile.wardenFloor)||0,0,2);
+ s.towerProgress=WARDEN_FLOORS.map((_,i)=>i<index?2:0);
+ s.towerProgress[index]=clamp(Math.trunc(profile.wardenStage)||0,0,index===2?1:2);
+ s.towerCheckpoint=index;
+ s.towerPermissions=new Set(Array.isArray(profile.wardenPermissions)?profile.wardenPermissions:[]);
+ for(const [floor,progress] of s.towerProgress.entries())if(progress>0)s.towerPermissions.add(floor);
+ s.shardsFound=new Set(Array.isArray(profile.wardenCaches)?profile.wardenCaches:[]);
+ s.towerDecks=new Map();
+ enterTowerDeck(s,index,true);
+ const p=s.player,spawn=s.levelMap.stages[s.levelStage].spawn;
+ Object.assign(p,spawn,{yaw:index===1?0:Math.PI});
+ if(s.towerProgress[index]>=2){
+  const mouth=WARDEN_STAIRS[index].points[0];
+  p.x=mouth.x;p.z=mouth.z-Math.sign(mouth.z)*2;
+ }
+}
+function enterTowerDeck(s,index,initial=false){
+ const previous=s.towerFloor;
+ s.towerTransit=null;
+ if(!initial&&previous===index){s.player.y=s.levelMap.elevation;return}
+ if(!initial)s.towerDecks.set(previous,{enemies:s.enemies,pickups:s.pickups});
+ const stored=s.towerDecks.get(index);
+ s.towerFloor=index;s.levelStage=Math.min(s.towerProgress[index],1);s.navCache=null;
  s.levelMap=WARDEN_FLOORS[index];s.onFoot=false;
- s.levelShards=s.levelMap.shards.filter(q=>!(s.profile.wardenCaches||[]).includes(q.id)).map(q=>({...q}));
- s.shardsFound=new Set(s.profile.wardenCaches||[]);s.encountersSeen=new Set();
- Object.assign(s.player,s.levelMap.stages[stage].spawn,{yaw:index===1?0:Math.PI,y:0,dashTime:0,hp:Math.max(75,s.player.hp)});
- s.discs=[];s.pickups=[];spawnTowerGuards(s);
+ s.levelShards=s.levelMap.shards.filter(q=>!s.shardsFound.has(q.id)).map(q=>({...q}));
+ s.player.y=s.levelMap.elevation;
+ s.discs=[];s.pickups=stored?.pickups||[];
+ if(stored)s.enemies=stored.enemies;
+ else spawnTowerGuards(s);
+ if(!initial&&index>s.towerCheckpoint){
+  s.towerCheckpoint=index;s.player.hp=Math.max(75,s.player.hp);
+  saveTower(s);
+  emit(s,'message',{text:s.levelMap.name+' / CHECKPOINT'});
+ }
 }
-function saveTower(s,reset=false){
- Object.assign(s.profile,{wardenFloor:s.towerFloor,wardenStage:s.levelStage,wardenCaches:[...s.shardsFound],checkpointScore:s.score});
- emit(s,'levelcheckpoint',{reset});
+function saveTower(s){
+ const index=s.towerCheckpoint;
+ Object.assign(s.profile,{wardenFloor:index,wardenStage:s.towerProgress[index],wardenCaches:[...s.shardsFound],wardenPermissions:[...s.towerPermissions],checkpointScore:s.score});
+ emit(s,'levelcheckpoint');
 }
 function initCampaign(s){
  const map=s.levelMap=LEVELS[s.chapter],raw=s.profile.levelSave,save=raw?.version===LEVEL_VERSION&&raw.chapter===s.chapter?raw:null;
@@ -398,8 +440,9 @@ function checkpointLevel(s,reset=false){
  s.profile.levelSave={version:LEVEL_VERSION,chapter:s.chapter,stage:s.levelStage,onFoot:s.onFoot,roadS:s.roadS||0,powers:[...s.powersDown],shards:[...s.shardsFound]};
  emit(s,'levelcheckpoint',{reset,area:levelArea(s)});
 }
-export function levelArea(s){return s.levelMap?(s.onFoot?s.levelMap.foot.name:s.levelMap.stages?.[s.levelStage].name||s.levelMap.name):''}
+export function levelArea(s){if(s.towerTransit)return WARDEN_STAIRS[s.towerTransit.linkIndex].name;return s.levelMap?(s.onFoot?s.levelMap.foot.name:s.levelMap.stages?.[s.levelStage].name||s.levelMap.name):''}
 export function campaignInteraction(s){
+ if(s.chapter===8&&(s.towerTransit||s.towerProgress[s.towerFloor]>=2||towerPermission(s)))return null;
  if(!s.levelMap){
   const data=s.chapter===4?cityAccessTarget(s):s.chapter===6?(s.profile.cleared?recoveryTarget(s):ARGON_RETURN[s.argonStage]):null;
   if(s.chapter===6&&s.argonStage===3&&s.enemies.some(e=>e.id==='reserve-registry'&&e.alive))return null;
@@ -437,9 +480,9 @@ function performCampaignAction(s,id){
  if(s.chapter===8){
   s.score+=300;
   if(s.levelStage===0){
-   s.levelStage=1;spawnTowerGuards(s);saveTower(s);
+   s.levelStage=1;s.towerProgress[s.towerFloor]=1;spawnTowerGuards(s);saveTower(s);
   }else if(s.towerFloor<WARDEN_FLOORS.length-1){
-   loadTowerFloor(s,s.towerFloor+1,0);saveTower(s,true);
+   s.towerProgress[s.towerFloor]=2;saveTower(s);
   }else{s.profile.wardenCleared=true;finish(s)}
   emit(s,'radio',{text:action.radio});return;
  }
@@ -454,6 +497,14 @@ function dismount(s){
 }
 function tickCampaign(s,dt){
  const map=s.levelMap,p=s.player;
+ if(s.chapter===8){
+  if(s.towerTransit)return;
+  const permission=towerPermission(s);
+  if(permission&&dist(p,permission)<2.2){
+   s.towerPermissions.add(s.towerFloor);s.navCache=null;s.score+=250;saveTower(s);
+   emit(s,'message',{text:permission.label+' / ACQUIRED'});
+  }
+ }
  for(const shard of s.levelShards)if(!shard.gone&&dist(p,shard)<2){shard.gone=true;s.shardsFound.add(shard.id);s.score+=250;p.hp=clamp(p.hp+20,0,100);if(s.chapter===8)saveTower(s);else checkpointLevel(s);emit(s,'radio',{text:shard.text})}s.levelShards=s.levelShards.filter(q=>!q.gone);
  if(map.stages){
   for(const event of map.encounters)if(event.stage>=s.levelStage-1&&event.stage<=s.levelStage&&!s.encountersSeen.has(event.id)&&dist(p,event.at)<event.radius){s.encountersSeen.add(event.id);event.units.forEach(([x,z,type],i)=>s.enemies.push(guard(event.id+'-'+i,x,z,type)));emit(s,'message',{text:event.id==='cell'?'ECHO / LOCAL CHANNEL CONNECTED':event.id==='apron'?'FREIGHT SECURITY / SIGNATURE CHECK':'SECURITY RESPONSE / '+event.id.toUpperCase()})}
@@ -473,11 +524,16 @@ function roadRiderTick(s,b,dt){
  if(!b.trailStart)b.trailStart={x:b.x,z:b.z};if(dist(b,b.trailStart)>2){s.trails.push({id:s.serial++,owner:b.id,a:b.trailStart,b:{x:b.x,z:b.z},born:s.time});b.trailStart={x:b.x,z:b.z}}
 }
 function campaignNavigation(s){
- const map=s.levelMap;if(s.onFoot)return{point:map.foot.point,label:map.foot.label==='BOARD'?'ARMOR BAY':'WHITE SIGNAL'};
+ const map=s.levelMap;if(s.towerTransit)return stairNavigation(s);
+ if(s.onFoot)return{point:map.foot.point,label:map.foot.label==='BOARD'?'ARMOR BAY':'WHITE SIGNAL'};
  if(map.stages){
   const stage=map.stages[s.levelStage],p=s.player;
-  const remaining=stage.guards?s.enemies.filter(e=>e.alive):[];
-  const destination=remaining.length?remaining.reduce((a,b)=>dist(p,a)<dist(p,b)?a:b):stage.point;
+  const stair=s.chapter===8&&s.towerProgress[s.towerFloor]>=2?WARDEN_STAIRS[s.towerFloor]:null;
+  const permission=s.chapter===8?towerPermission(s):null;
+  const remaining=stage.guards&&!stair&&!permission?s.enemies.filter(e=>e.alive):[];
+  const mouth=stair?.points[0];
+  const destination=mouth?{...mouth,z:mouth.z+Math.sign(mouth.z)*.6}:permission||(remaining.length?remaining.reduce((a,b)=>dist(p,a)<dist(p,b)?a:b):stage.point);
+  const label=stair?.name||permission?.label||(remaining.length?'SECURITY / '+remaining.length+' LEFT':stage.name);
   let cache=s.navCache;
   if(!cache||cache.stage!==s.levelStage||dist(cache.destination,destination)>2||!cache.route.length||!clearLine(s,p,cache.route[0],.5)||s.time-cache.time>.8&&dist(cache.from,p)>4){
    const radius=1.2,line=(a,b,r)=>clearLine(s,a,b,dist(a,p)<.01||dist(b,p)<.01?.5:r),raw=floorRoute(map,p,destination,(x,z,r)=>walkable(s,x,z,r),radius,line),route=[];
@@ -486,7 +542,8 @@ function campaignNavigation(s){
    cache=s.navCache={stage:s.levelStage,time:s.time,from:{x:p.x,z:p.z},destination:{x:destination.x,z:destination.z},route};
   }
   while(cache.route.length>1&&dist(p,cache.route[0])<1.1&&clearLine(s,p,cache.route[1],.7))cache.route.shift();
-  return{point:cache.route[0]||destination,label:remaining.length?'SECURITY / '+remaining.length+' LEFT':stage.name,destination,route:cache.route};
+    const route=cache.route.map(q=>({...q,y:map.elevation}));
+  return{point:route[0]||{...destination,y:map.elevation},label,destination,route};
  }
  if(map.powers)for(const power of map.powers){const unit=s.enemies.find(e=>e.id===power.id);if(unit?.alive){const gate=map.doors.find(d=>d.power===power.id),at=nearestRoad(map,gate).s;if(s.roadS>at-55&&s.roadS<at+18)return{point:power,label:'SECURITY DAM / POWER CORE'}}}
  const current=nearestRoad(map,s.player).s;
@@ -495,6 +552,12 @@ function campaignNavigation(s){
 }
 function campaignObjective(s){
  if(s.onFoot)return s.levelMap.foot.objective;
+ if(s.chapter===8){
+  if(s.towerTransit)return 'Follow the stairway to the '+(s.towerTransit.up?'next deck':'lower landing')+'.';
+  if(s.towerProgress[s.towerFloor]>=2)return 'Climb the '+WARDEN_STAIRS[s.towerFloor].name.toLowerCase()+' to continue the ascent.';
+  const permission=towerPermission(s);
+  if(permission)return permission.objective;
+ }
  if(s.levelMap.stages)return s.levelMap.stages[s.levelStage].objective;
  if(s.chapter===1)return 'Follow Freight Line 07 to the maintenance depot';
  const target=campaignNavigation(s);return target.label.includes('SECURITY')?'Destroy the security dam’s power core':'Follow the dry aqueduct toward Flynn’s white signal';

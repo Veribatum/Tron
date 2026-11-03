@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as M from '../src/sim.js';
 import {CITY_RELAY,SKYPORT,SKY_EXIT,PATROL_ROUTES,ARGON_ACCESS,ARGON_RETURN} from '../src/world.js';
+import {WARDEN_PERMISSIONS,WARDEN_STAIRS} from '../src/levels.js';
 import {sceneFor,ARCHIVE_SCENE,recap} from '../src/story.js';
 import {jetModel,animateJet,programModel,animateProgram} from '../src/art.js';
 const tick=(s,t,input={})=>{const events=[];for(let i=0;i<Math.ceil(t/.02)&&!s.dead&&!s.finished;i++)events.push(...M.advance(s,.02,input));return events};
@@ -56,33 +57,75 @@ test('the air battle leads to the reserve, bridge isolation and registry restora
  for(const c of practice.cores)c.alive=false;
  M.advance(practice,.02);assert(practice.finished);assert.equal(practice.profile.checkpoint,4);
 });
-test('Spire floors have connected paths, combat locks and resumable lifts, then unlock recovery',()=>{
+test('the Spire walks continuously from intake to crown with permission wings, stairs and backtracking',()=>{
  const s=M.createRun({profile:{...M.newProfile(),checkpoint:6,cleared:true}});
  assert.equal(s.chapter,8);
  let length=0;
- for(const elevation of [0,32,72]){
-  assert.equal(s.levelMap.elevation,elevation);
+ const walk=target=>{
+  for(let i=0;i<2200&&M.dist(s.player,target)>.16;i++){
+   const p=s.player,before={...p},distance=M.dist(p,target);
+   M.advance(s,.02,{x:(target.x-p.x)/distance,z:(target.z-p.z)/distance});
+   assert(Math.abs(p.y-before.y)<.42,'ascent follows walkable geometry');
+   length+=M.distance3(p,before);
+  }
+  assert(M.dist(s.player,target)<.17,JSON.stringify({target,x:s.player.x,y:s.player.y,z:s.player.z,transit:s.towerTransit}));
+ };
+ const routeTo=target=>{
+  const path=M.routeTo(s,s.player,target);
+  assert(path.length,'path to '+JSON.stringify(target));
+  for(const point of path)walk(point);
+ };
+ const traverse=(link,up)=>{
+  const route=up?link.points:[...link.points].reverse();
+  routeTo(route[0]);
+  for(const point of route.slice(1,-1))walk(point);
+  const end=route.at(-1);
+  walk({...end,z:end.z-Math.sign(end.z)*2});
+ };
+ for(const [index,elevation] of [0,32,72].entries()){
+  assert.equal(s.towerFloor,index);assert.equal(s.player.y,elevation);
   for(const stage of [0,1]){
    assert.equal(s.levelStage,stage);
    const target=s.levelMap.stages[stage].point;
    assert(s.enemies.length>=2);
-   for(const e of s.enemies)assert(M.walkable(s,e.x,e.z),e.id);
-   const path=M.routeTo(s,s.player,target);assert(path.length);
-   let last=s.player;
-   for(const point of path){assert(M.clearLine(s,last,point,.7));length+=M.dist(last,point);last=point}
-   Object.assign(s.player,target);assert(!M.campaignInteraction(s));
-   for(const e of s.enemies)e.alive=false;
-   assert(M.act(s,'interact'));tick(s,.4);
-   if(!s.finished){
-    const resumed=M.createRun({profile:s.profile});
-    assert.equal(resumed.towerFloor,s.towerFloor);assert.equal(resumed.levelStage,s.levelStage);
+   for(const e of s.enemies){assert(M.walkable(s,e.x,e.z),e.id);e.alive=false}
+   if(stage===0){
+    const permission=WARDEN_PERMISSIONS[index];
+    assert.equal(M.navigationTarget(s).label,permission.label);
+    routeTo(permission);assert(s.towerPermissions.has(index));
+   }
+   routeTo(target);assert(M.act(s,'interact'));tick(s,.4);
+  }
+  if(index<2){
+   const saved=M.createRun({profile:s.profile});
+   assert.equal(saved.towerProgress[index],2);
+   assert.equal(saved.player.y,elevation);
+   const link=WARDEN_STAIRS[index];
+   traverse(link,true);
+   assert.equal(s.profile.wardenFloor,index+1);
+   if(index===0){
+    const beforeBacktrack=length;
+    traverse(link,false);
+    assert.equal(s.towerFloor,0);assert.equal(s.towerProgress[0],2);
+    assert.equal(s.profile.wardenFloor,1);
+    traverse(link,true);
+    length=beforeBacktrack;
    }
   }
  }
- assert(length>450);assert(s.finished);assert(s.profile.wardenCleared);
+ assert(length>1000);assert(s.finished);assert(s.profile.wardenCleared);
  const city=M.createRun({profile:s.profile});
  assert.equal(city.chapter,6);assert.equal(city.enemies.length,3);
  assert(M.objective(city).includes('blockade'));
+});
+test('disc damage and rewards still work on the raised decks',()=>{
+ const s=M.createRun({profile:{...M.newProfile(),checkpoint:8,wardenFloor:1}});
+ const victim=s.enemies[0];s.enemies=[victim];victim.attack=100;
+ Object.assign(victim,{x:s.player.x,z:s.player.z+5,hp:20});
+ assert(M.act(s,'attack'));tick(s,.6);assert(!victim.alive);
+ const orb=s.pickups[0];assert(orb);
+ Object.assign(s.player,{x:orb.x,z:orb.z,hp:70});tick(s,.04);
+ assert(s.player.hp>70);
 });
 test('a jet can cut an interceptor with its trail while another altitude clears the same path',()=>{
  const s=M.createRun({mode:'jet'});
