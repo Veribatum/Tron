@@ -1,6 +1,6 @@
-import {LEVELS,LEVEL_VERSION,CELL,floorContains,floorRoute,roadPoint,nearestRoad,FLIGHT_APPROACH} from './levels.js?v=8';
-import {CLIPS} from './motion.js?v=8';
-import {CITY_BOUNDS,SKY_BOUNDS,CITY_COVER,CITY_ENTRY,CITY_RELAY,SKYPORT,REFUGE_EXIT,PATROL_ROUTES,CIVIC_ROUTES,SKY_TOWERS,SKY_CORES,SKY_EXIT,ARGON_ACCESS,ARGON_RETURN,ARGON_BRIDGE,ARGON_SERVICE_SPAN,ARGON_SERVICE_CACHE} from './world.js?v=8';
+import {LEVELS,LEVEL_VERSION,CELL,floorContains,floorRoute,roadPoint,nearestRoad,FLIGHT_APPROACH,WARDEN_FLOORS} from './levels.js?v=9';
+import {CLIPS} from './motion.js?v=9';
+import {CITY_BOUNDS,SKY_BOUNDS,CITY_COVER,CITY_ENTRY,CITY_RELAY,SKYPORT,REFUGE_EXIT,PATROL_ROUTES,CIVIC_ROUTES,SKY_TOWERS,SKY_CORES,SKY_EXIT,ARGON_ACCESS,ARGON_RETURN,ARGON_BRIDGE,ARGON_SERVICE_SPAN,ARGON_SERVICE_CACHE,ARGON_RECOVERY} from './world.js?v=9';
 export {CITY_BOUNDS,SKY_BOUNDS,CITY_COVER,CITY_RELAY,SKYPORT,REFUGE_EXIT,SKY_TOWERS,SKY_EXIT};
 export const VERSION=1;
 export const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -14,31 +14,35 @@ export const TANK_COVER=[{x:-20,z:22,w:7,d:10},{x:21,z:0,w:7,d:12},{x:-21,z:-29,
 export const REFUGE_COVER=[{x:-9,z:-4,w:2.5,d:4},{x:9,z:-4,w:2.5,d:4},{x:0,z:-10,w:2.1,d:.8}];
 export const ARCHIVE={x:0,z:-7};
 export const isCity=s=>s.chapter===4||s.chapter===6;
-export const isCampaign=s=>s.mode==='story'&&s.chapter<3&&!!s.levelMap;
+export const isCampaign=s=>s.mode==='story'&&!!s.levelMap;
 export const isVehicle=s=>!s.onFoot&&(s.chapter===1||s.chapter===2||s.chapter===5||s.chapter===7);
 export const isCycle=s=>(s.chapter===1||s.chapter===7)&&isVehicle(s);
 export const isTank=s=>s.chapter===2&&isVehicle(s);
 export const boundsOf=s=>s.levelMap?.bounds||[DISC_BOUNDS,CYCLE_BOUNDS,TANK_BOUNDS,REFUGE_BOUNDS,CITY_BOUNDS,SKY_BOUNDS,CITY_BOUNDS,CYCLE_BOUNDS][s.chapter];
 export const campaignDoors=s=>s.levelMap?s.levelMap.doors.filter(d=>d.power?s.enemies.some(e=>e.id===d.power&&e.alive):s.levelStage<d.opensAt):[];
+const gridPylons=[{x:-27,z:6,w:3,d:15,h:3},{x:27,z:6,w:3,d:15,h:3},{x:0,z:-35,w:8,d:3,h:3}];
 const closedCityCover=[...CITY_COVER,{x:0,z:7,w:3,d:.2,h:3.1}];
-export const coverOf=s=>s.levelMap?[...s.levelMap.cover,...campaignDoors(s)]:[COVER,[],TANK_COVER,REFUGE_COVER,CITY_COVER,[],s.argonStage<2&&!s.profile.cleared?closedCityCover:CITY_COVER,[]][s.chapter];
+export const coverOf=s=>s.levelMap?[...s.levelMap.cover,...campaignDoors(s)]:[COVER,[],TANK_COVER,REFUGE_COVER,CITY_COVER,[],s.argonStage<2&&!s.profile.cleared?closedCityCover:CITY_COVER,s.profile.gridHeat===1?gridPylons:[]][s.chapter];
 export const gateOf=s=>s.levelMap?campaignNavigation(s).point:s.chapter===6?(s.profile.cleared?{x:-5,z:67}:returnTarget(s)):s.chapter===3?(s.archiveRead?REFUGE_EXIT:ARCHIVE):isCity(s)?(s.relayHacked||s.chapter===6?SKYPORT:CITY_RELAY):s.chapter===5?SKY_EXIT:({x:0,z:s.chapter===7?-57:[-36,-57,-73][s.chapter]});
 const palette=['cyan','white','violet'];
 export function rng(seed){let n=seed>>>0;return()=>{n+=0x6d2b79f5;let t=n;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
 export function newProfile(name='RUNNER',color='cyan'){return{name:String(name).trim().slice(0,20)||'RUNNER',color:palette.includes(color)?color:'cyan',frame:'male',helmet:true,checkpoint:0,cleared:false,bestDisc:0,bestCycle:0,bestTank:0,bestJet:0,bestCity:0,storyVersion:4,levelSave:null,seenScenes:[]}}
-export function validProfile(p){return!!p&&typeof p.name==='string'&&p.name.length<=20&&palette.includes(p.color)&&[0,1,2,3,4,5,6,7].includes(p.checkpoint)&&typeof p.cleared==='boolean'&&['bestDisc','bestCycle'].every(k=>Number.isFinite(p[k])&&p[k]>=0&&p[k]<1e9)&&(p.frame===undefined||['male','female'].includes(p.frame))&&(p.bestTank===undefined||Number.isFinite(p.bestTank)&&p.bestTank>=0&&p.bestTank<1e9)}
+export function validProfile(p){return!!p&&typeof p.name==='string'&&p.name.length<=20&&palette.includes(p.color)&&[0,1,2,3,4,5,6,7,8].includes(p.checkpoint)&&typeof p.cleared==='boolean'&&['bestDisc','bestCycle'].every(k=>Number.isFinite(p[k])&&p[k]>=0&&p[k]<1e9)&&(p.frame===undefined||['male','female'].includes(p.frame))&&(p.bestTank===undefined||Number.isFinite(p.bestTank)&&p.bestTank>=0&&p.bestTank<1e9)}
 export function createRun({mode='story',profile=newProfile(),seed=7319}={}){
  const s={mode:['story','disc','cycle','tank','jet','city'].includes(mode)?mode:'story',profile:{...newProfile(),...structuredClone(profile)},seed:seed>>>0,random:rng(seed),chapter:mode==='jet'?5:mode==='city'?4:mode==='tank'?2:mode==='cycle'?1:mode==='story'?profile.checkpoint:0,time:0,score:mode==='story'&&(profile.checkpoint>0||profile.levelSave)&&Number.isFinite(profile.checkpointScore)?profile.checkpointScore:0,kills:0,wave:0,enemies:[],discs:[],shells:[],bolts:[],cores:[],citizens:[],trails:[],pickups:[],events:[],serial:0,combo:0,comboTime:0,finished:false,dead:false,gate:false,waveDelay:0,shake:0};
  if(s.mode==='story'&&s.chapter===6&&!(profile.storyVersion>=4)){
   s.profile.cleared=false;
   s.profile.seenScenes=(Array.isArray(profile.seenScenes)?profile.seenScenes:[]).filter(n=>n!==6);
  }
+ if(s.mode==='story'&&s.chapter===6&&s.profile.cleared&&!s.profile.wardenCleared)s.chapter=8;
+ if(s.chapter===8&&s.profile.wardenCleared)s.chapter=6;
  enterChapter(s,s.chapter);return s;
 }
 export function enterChapter(s,n){
- s.chapter=n;s.argonStage=0;s.onBridge=false;s.levelMap=null;s.onFoot=false;s.levelStage=0;s.flightLeg=0;s.finished=false;s.dead=false;s.chapterTime=0;s.enemies=[];s.discs=[];s.shells=[];s.bolts=[];s.cores=[];s.citizens=[];s.trails=[];s.archiveRead=!!s.profile.flynnFound;s.relayHacked=isCity(s)&&!!s.profile.relayHacked;s.exposure=0;s.searchTime=0;s.cityAlarms=0;s.crouching=false;s.scanner={x:0,z:50};s.pickups=[];s.wave=0;s.gate=false;s.waveDelay=0;s.player={id:'player',x:n===6&&!s.profile.cleared?37:0,z:[26,42,65,16,73,145,s.profile.cleared?73:-69,42][n],y:n===5?38:0,pitch:0,yaw:Math.PI,turretYaw:Math.PI,hp:100,energy:100,attack:0,dash:0,pulse:0,shield:0,invuln:0,stagger:0,action:0,speed:n===1?15:n===5?26:0,trailTime:0,trailStart:null,alive:true};
+ s.chapter=n;s.navCache=null;s.cityNav=null;s.argonStage=0;s.onBridge=false;s.levelMap=null;s.onFoot=false;s.levelStage=0;s.flightLeg=0;s.finished=false;s.dead=false;s.chapterTime=0;s.enemies=[];s.discs=[];s.shells=[];s.bolts=[];s.cores=[];s.citizens=[];s.trails=[];s.archiveRead=!!s.profile.flynnFound;s.relayHacked=isCity(s)&&!!s.profile.relayHacked;s.exposure=0;s.searchTime=0;s.cityAlarms=0;s.crouching=false;s.scanner={x:0,z:50};s.pickups=[];s.wave=0;s.gate=false;s.waveDelay=0;s.player={id:'player',x:n===6&&!s.profile.cleared?37:0,z:[26,42,65,16,73,145,s.profile.cleared?73:-69,42][n],y:n===5?38:0,pitch:0,yaw:Math.PI,turretYaw:Math.PI,hp:100,energy:100,attack:0,dash:0,pulse:0,shield:0,invuln:0,stagger:0,action:0,speed:n===1?15:n===5?26:0,trailTime:0,trailStart:null,alive:true};
  if(s.mode==='story'&&n<3)initCampaign(s);
- else if(n===1||n===7)for(let i=0;i<3;i++)s.enemies.push({id:'bike-'+i,type:'bike',x:(i-1)*32,z:-22-i%2*8,yaw:i%2?0:Math.PI/2,hp:70,maxHp:70,alive:true,speed:15+i,fire:4+i,turn:0,trailTime:0,trailStart:null,age:0});
+ else if(n===8)loadTowerFloor(s,clamp(Math.trunc(s.profile.wardenFloor)||0,0,2),clamp(Math.trunc(s.profile.wardenStage)||0,0,1));
+ else if(n===1||n===7)for(let i=0;i<(n===7&&s.profile.gridHeat===1?4:3);i++)s.enemies.push({id:'bike-'+i,type:'bike',x:(i-1)*32,z:-22-i%2*8,yaw:i%2?0:Math.PI/2,hp:70,maxHp:70,alive:true,speed:15+i,fire:4+i,turn:0,trailTime:0,trailStart:null,age:0});
  else if(n===2)for(const [i,x,z]of[[0,-35,5],[1,33,-27],[2,0,-55]])s.enemies.push({id:'tank-'+i,type:'tank',x,z,yaw:0,turretYaw:0,hp:160,maxHp:160,alive:true,speed:0,attack:2+i*.8,windup:0,action:0,path:[],pathTime:0,age:0});
  else if(n===4||n===6)spawnCity(s);
  else if(n===5)spawnSky(s);
@@ -79,7 +83,7 @@ export function targetOf(s){if(s.chapter===5)return flightTarget(s);const p=s.pl
 export function canAccessArchive(s){return s.chapter===3&&!s.archiveRead&&dist(s.player,ARCHIVE)<3.2}
 export function canAccessRelay(s){return s.chapter===4&&!s.relayHacked&&!cityAccessTarget(s)&&dist(s.player,CITY_RELAY)<3.6}
 export function canBoardJet(s){return s.chapter===4&&s.relayHacked&&dist(s.player,SKYPORT)<6}
-export function canTalkMara(s){return isCity(s)&&(s.chapter===4||s.profile.cleared)&&dist(s.player,{x:-5,z:67})<3.3}
+export function canTalkMara(s){return isCity(s)&&(s.chapter===4||s.profile.cleared&&!recoveryTarget(s))&&dist(s.player,{x:-5,z:67})<3.3}
 export function act(s,action){
  if(s.dead||s.finished)return false;const p=s.player,target=targetOf(s);
  const levelAction=campaignInteraction(s);if(action==='interact'&&levelAction&&!p.pending){playClip(p,'interact');p.pending={kind:'level',id:levelAction.id,impact:CLIPS.interact.impact};return true}
@@ -88,7 +92,7 @@ export function act(s,action){
  if(action==='interact'&&canBoardJet(s)&&!p.pending){playClip(p,'interact');p.pending={kind:'board',impact:CLIPS.interact.impact};return true}
  if(action==='interact'&&canTalkMara(s)&&!p.pending){playClip(p,'interact');p.pending={kind:'mara',impact:CLIPS.interact.impact};return true}
  if(s.chapter===5){if(action==='attack'&&p.attack<=0){p.attack=.16;fireBolt(s,p,true);return true}return false}
- if(s.chapter===3||(s.chapter===6&&s.profile.cleared)||s.chapter===7)return false;
+ if(s.chapter===3||(s.chapter===6&&s.profile.cleared&&!recoveryTarget(s))||s.chapter===7)return false;
  if(isTank(s)){
   if(action==='attack'&&p.attack<=0){p.attack=1.05;p.action=.35;fireShell(s,p,p.turretYaw,48);return true}
   if(action==='pulse'&&p.pulse<=0&&p.energy>=35){p.energy-=35;p.pulse=9;p.shield=2.8;emit(s,'shield',{x:p.x,z:p.z});return true}
@@ -186,7 +190,14 @@ function bridgeTick(s){
   emit(s,'radio',{text:'MARA: That cache belonged to the programs who built this span. Take the charge. They’d want it used.'});
  }
 }
+function recoveryTarget(s){
+ return s.chapter===6&&s.profile.cleared?ARGON_RECOVERY[s.profile.recoveryStage||0]:null;
+}
+function spawnRecovery(s){
+ s.enemies=(recoveryTarget(s)?.guards||[]).map(([x,z,type],i)=>guard('recovery-'+i,x,z,type));
+}
 function spawnCity(s){
+ if(recoveryTarget(s))spawnRecovery(s);
  if(s.chapter===4&&s.mode==='story')s.argonStage=clamp(Math.trunc(s.profile.argonAccess)||0,0,2);
  if(s.chapter===6&&!s.profile.cleared){
   s.argonStage=clamp(Math.trunc(s.profile.argonReturn)||0,0,3);
@@ -285,9 +296,23 @@ export function aimSolution(s){
 export function navigationTarget(s){
  if(s.levelMap)return campaignNavigation(s);
  if(s.chapter===5&&s.mode==='story'&&!s.gate&&s.flightLeg<FLIGHT_APPROACH.length){const q=FLIGHT_APPROACH[s.flightLeg];return{point:q,label:q.label}}
- if(s.chapter===4&&cityAccessTarget(s))return{point:cityAccessTarget(s),label:cityAccessTarget(s).label};
- if(s.chapter===6&&!s.profile.cleared)return{point:returnTarget(s),label:returnTarget(s).label};
- if(s.chapter===7)return{point:gateOf(s),label:'CHAMPION EXIT'};
+ if(isCity(s)){
+  const target=recoveryTarget(s)||cityAccessTarget(s)||(s.chapter===6&&!s.profile.cleared?returnTarget(s):gateOf(s));
+  const label=target.label||(s.chapter===6?'MARA':s.relayHacked?'SKYPORT':'CIVIC RELAY');
+  const p=s.player;
+  if(s.chapter===6&&s.argonStage===2&&!s.onBridge)return{point:{x:0,z:7.7},label:'LIGHT BRIDGE ENTRANCE',destination:target};
+  if(s.onBridge)return{point:s.chapter===4?{x:ARGON_SERVICE_SPAN.x,z:-38}:s.argonStage===2?target:{x:0,z:-47},label,destination:target};
+  let cache=s.cityNav;
+  if(!cache||dist(cache.destination,target)>2||dist(cache.from,p)>7||cache.route.length===0){
+   cache=s.cityNav={destination:{x:target.x,z:target.z},from:{x:p.x,z:p.z},route:routeTo(s,p,target)};
+  }
+  while(cache.route.length>1&&clearLine(s,p,cache.route[1],.7))cache.route.shift();
+  return{point:cache.route[0]||target,label,destination:target,route:cache.route};
+ }
+ if(s.chapter===7){
+  const destination=gateOf(s),route=s.gate?routeTo(s,s.player,destination):[];
+  return{point:route[0]||destination,route:route.length?route:[destination],destination,label:s.profile.gridHeat===1?'CHAMPION EXIT':'FINAL HEAT GATE'};
+ }
  if(s.chapter!==5)return{point:gateOf(s),label:s.chapter===4?(s.relayHacked?'SKYPORT':'CIVIC RELAY'):s.chapter===3?(s.archiveRead?'SERVICE DOOR':'FLYNN’S TERMINAL'):'TRANSIT'};
  if(s.gate)return{point:SKY_EXIT,label:'ECHO / RETURN SIGNAL'};
  const remaining=s.cores.filter(c=>c.alive).sort((a,b)=>distance3(s.player,a)-distance3(s.player,b));
@@ -299,7 +324,7 @@ export function advance(s,seconds,input={}){
  if(isCycle(s)){bikeTick(s,p,dt,input);for(const e of s.enemies)bikeTick(s,e,dt,input);s.trails=s.trails.filter(t=>s.time-t.born<(s.levelMap?4:16)).slice(-1600)}
  else if(s.chapter===5){s.trails=s.trails.filter(t=>s.time-t.born<8).slice(-1600);jetTick(s,p,dt,input);for(const e of s.enemies)jetTick(s,e,dt);boltsTick(s,dt)}
  else if(isTank(s)){tankTick(s,p,dt,input);for(const e of s.enemies)if(e.type==='tank')tankTick(s,e,dt);shellsTick(s,dt)}
- else{p.energy=clamp(p.energy+dt*10,0,100);let x=input.x||0,z=input.z||0,n=Math.hypot(x,z);p.moving=n>.08;if(p.dashTime>0){p.dashTime-=dt;move(s,p,p.dashX*dt*23,p.dashZ*dt*23)}else if(p.moving){x/=Math.max(1,n);z/=Math.max(1,n);if(!p.pending)p.yaw=Math.atan2(x,z);move(s,p,x*dt*(p.crouching?3:7),z*dt*(p.crouching?3:7))}if(isCity(s)){if(!s.profile.cleared)bridgeTick(s);cityTick(s,dt);}else for(const e of s.enemies)if(e.alive&&(!s.levelMap||dist(p,e)<70))guardTick(s,e,dt);for(const orb of s.pickups){orb.age+=dt;if(p.y<2&&dist(orb,p)<2){p.hp=clamp(p.hp+9,0,100);p.energy=clamp(p.energy+18,0,100);orb.gone=true;emit(s,'pickup',{x:orb.x,z:orb.z})}}s.pickups=s.pickups.filter(o=>!o.gone)}
+ else{p.energy=clamp(p.energy+dt*10,0,100);let x=input.x||0,z=input.z||0,n=Math.hypot(x,z);p.moving=n>.08;if(p.dashTime>0){p.dashTime-=dt;move(s,p,p.dashX*dt*23,p.dashZ*dt*23)}else if(p.moving){x/=Math.max(1,n);z/=Math.max(1,n);if(!p.pending)p.yaw=Math.atan2(x,z);move(s,p,x*dt*(p.crouching?3:7),z*dt*(p.crouching?3:7))}if(isCity(s)){if(!s.profile.cleared)bridgeTick(s);cityTick(s,dt);}else for(const e of s.enemies)if(e.alive&&(!s.levelMap||dist(p,e)<(s.chapter===8?36:70)))guardTick(s,e,dt);for(const orb of s.pickups){orb.age+=dt;if(p.y<2&&dist(orb,p)<2){p.hp=clamp(p.hp+9,0,100);p.energy=clamp(p.energy+18,0,100);orb.gone=true;emit(s,'pickup',{x:orb.x,z:orb.z})}}s.pickups=s.pickups.filter(o=>!o.gone)}
  if(s.dead)return s.events;pendingTick(s,p);if(s.player!==p||s.finished)return s.events;if(input.attack)act(s,'attack');if(input.dash)act(s,'dash');if(input.pulse)act(s,'pulse');if(input.interact)act(s,'interact');discsTick(s,dt);if(s.dead)return s.events;
  if(s.levelMap){tickCampaign(s,dt);return s.events}
  if(s.chapter===3){if(s.archiveRead&&dist(p,REFUGE_EXIT)<3)enterChapter(s,4);return s.events}
@@ -309,17 +334,25 @@ export function advance(s,seconds,input={}){
    s.gate=true;emit(s,'gate');
    if(s.chapter===7){
     s.trails=[];
-    emit(s,'radio',{text:'DEPOT CONTROL: Champion verified. Light walls down. Take the north exit to the siege tank.'});
+    emit(s,'radio',{text:s.profile.gridHeat===1?'DEPOT CONTROL: Champion verified. Take the north exit to the siege tank.':'DEPOT CONTROL: First heat won. Light walls down. Take the north gate to the final heat.'});
    }
    if(s.mode!=='story')finish(s);
   }}
- if(s.mode==='story'&&s.gate&&dist(p,gateOf(s))<(s.chapter===7?10:isVehicle(s)?6:3))enterChapter(s,s.chapter===7?2:s.chapter+1);return s.events;
+ if(s.mode==='story'&&s.gate&&dist(p,gateOf(s))<(s.chapter===7?10:isVehicle(s)?6:3)){
+  if(s.chapter===7&&s.profile.gridHeat!==1){
+   s.profile.gridHeat=1;enterChapter(s,7);emit(s,'levelcheckpoint',{reset:true});
+   emit(s,'radio',{text:'DEPOT CONTROL: Final heat. Four riders. Mind the divider pylons.'});
+  }else enterChapter(s,s.chapter===7?2:s.chapter+1);
+ }return s.events;
 }
-function finish(s){s.finished=true;const key=s.chapter===5?'bestJet':isCity(s)?'bestCity':s.chapter===2?'bestTank':isCycle(s)?'bestCycle':'bestDisc';if(s.chapter!==3)s.profile[key]=Math.max(s.profile[key]||0,s.score);if(s.mode==='story')s.profile.cleared=true;emit(s,'victory')}
+function finish(s){s.finished=true;const key=s.chapter===5?'bestJet':isCity(s)||s.chapter===8?'bestCity':s.chapter===2?'bestTank':isCycle(s)?'bestCycle':'bestDisc';if(s.chapter!==3)s.profile[key]=Math.max(s.profile[key]||0,s.score);if(s.mode==='story')s.profile.cleared=true;emit(s,'victory')}
 export function objective(s){
  if(s.levelMap)return campaignObjective(s);
- if(s.chapter===6)return s.profile.cleared?'Argon is free · explore the district':ARGON_RETURN[s.argonStage].objective;
- if(s.chapter===7)return s.gate?'Take the champion’s exit to the aqueduct':'Light Cycle Grid · outlast '+s.enemies.filter(e=>e.alive).length+' riders';
+ if(s.chapter===6)return s.profile.cleared?(recoveryTarget(s)?.objective||'Argon is free · relief operation complete'):ARGON_RETURN[s.argonStage].objective;
+ if(s.chapter===7){
+  const final=s.profile.gridHeat===1;
+  return s.gate?(final?'Take the champion’s exit to the aqueduct':'Reach the north gate to start the final heat'):'Light Cycle Grid · Heat '+(final?'2':'1')+'/2 · '+s.enemies.filter(e=>e.alive).length+' riders';
+ }
  if(s.chapter===5)return s.gate?'Follow ECHO’s return signal':'Break the erasure array · '+s.cores.filter(e=>e.alive).length+' uplinks';
  if(s.chapter===4&&cityAccessTarget(s))return cityAccessTarget(s).objective;
  if(s.chapter===4)return s.relayHacked?'Reach the skyport · take a light jet':'Recover the root key at the civic relay';
@@ -332,6 +365,22 @@ export function objective(s){
 function guard(id,x,z,type='disc'){
  const hp=type==='sentinel'?125:type==='striker'?70:62;
  return{id,type,x,z,yaw:Math.PI,hp,maxHp:hp,alive:true,attack:2,windup:0,stagger:0,action:0,path:[],pathTime:0,age:0};
+}
+function spawnTowerGuards(s){
+ const stage=s.levelMap.stages[s.levelStage];
+ s.enemies=stage.guards.map(([x,z,type],i)=>guard('warden-'+s.towerFloor+'-'+s.levelStage+'-'+i,x,z,type));
+}
+function loadTowerFloor(s,index,stage){
+ s.towerFloor=index;s.levelStage=stage;s.navCache=null;
+ s.levelMap=WARDEN_FLOORS[index];s.onFoot=false;
+ s.levelShards=s.levelMap.shards.filter(q=>!(s.profile.wardenCaches||[]).includes(q.id)).map(q=>({...q}));
+ s.shardsFound=new Set(s.profile.wardenCaches||[]);s.encountersSeen=new Set();
+ Object.assign(s.player,s.levelMap.stages[stage].spawn,{yaw:index===1?0:Math.PI,y:0,dashTime:0,hp:Math.max(75,s.player.hp)});
+ s.discs=[];s.pickups=[];spawnTowerGuards(s);
+}
+function saveTower(s,reset=false){
+ Object.assign(s.profile,{wardenFloor:s.towerFloor,wardenStage:s.levelStage,wardenCaches:[...s.shardsFound],checkpointScore:s.score});
+ emit(s,'levelcheckpoint',{reset});
 }
 function initCampaign(s){
  const map=s.levelMap=LEVELS[s.chapter],raw=s.profile.levelSave,save=raw?.version===LEVEL_VERSION&&raw.chapter===s.chapter?raw:null;
@@ -352,21 +401,29 @@ function checkpointLevel(s,reset=false){
 export function levelArea(s){return s.levelMap?(s.onFoot?s.levelMap.foot.name:s.levelMap.stages?.[s.levelStage].name||s.levelMap.name):''}
 export function campaignInteraction(s){
  if(!s.levelMap){
-  const data=s.chapter===4?cityAccessTarget(s):s.chapter===6&&!s.profile.cleared?ARGON_RETURN[s.argonStage]:null;
+  const data=s.chapter===4?cityAccessTarget(s):s.chapter===6?(s.profile.cleared?recoveryTarget(s):ARGON_RETURN[s.argonStage]):null;
   if(s.chapter===6&&s.argonStage===3&&s.enemies.some(e=>e.id==='reserve-registry'&&e.alive))return null;
-  if(!data||distance3(s.player,data)>3.6||s.chapter===6&&s.argonStage===1&&s.enemies.some(e=>e.id==='reserve-captain'&&e.alive))return null;
+  if(!data||data.guards&&s.enemies.some(e=>e.alive)||distance3(s.player,data)>3.6||s.chapter===6&&s.argonStage===1&&s.enemies.some(e=>e.id==='reserve-captain'&&e.alive))return null;
 
   return{id:'argon',point:data,label:data.action,aria:data.label};
  }
  const data=s.onFoot?s.levelMap.foot:s.levelMap.stages?.[s.levelStage];
- if(!data||data.kind==='reach'||dist(s.player,data.point)>3.8||data.label==='BOARD'&&dist(s.player,s.levelMap.docked)>6.2)return null;
+ if(!data||data.guards&&s.enemies.some(e=>e.alive)||data.kind==='reach'||dist(s.player,data.point)>3.8||data.label==='BOARD'&&dist(s.player,s.levelMap.docked)>6.2)return null;
  return{...data,id:s.onFoot?'transfer':String(s.levelStage),point:data.point,label:data.label||'ACCESS',aria:data.aria};
 }
 function performCampaignAction(s,id){
  const action=campaignInteraction(s);if(!action||action.id!==id)return;
  if(id==='argon'){
+  if(recoveryTarget(s)){
+   s.profile.recoveryStage=(s.profile.recoveryStage||0)+1;
+   s.score+=350;s.profile.checkpointScore=s.score;s.enemies=[];s.discs=[];
+   spawnRecovery(s);emit(s,'levelcheckpoint');
+   emit(s,'radio',{text:s.profile.recoveryStage===3?'MARA: The streets are open. We can take it from here.':s.profile.recoveryStage===1?'MARA: Transit is moving. Send the evacuation route over the west relay.':'MARA: The route is live. Meet me at the south entrance.'});return;
+  }
   const data=s.chapter===4?ARGON_ACCESS[s.argonStage]:ARGON_RETURN[s.argonStage];
-  if(s.chapter===6&&s.argonStage===3){s.score+=1200;finish(s);return}
+  if(s.chapter===6&&s.argonStage===3){
+   s.score+=1200;enterChapter(s,8);return;
+  }
   s.argonStage++;s.score+=200;
   if(s.chapter===6&&s.argonStage===3)s.enemies.push(guard('reserve-registry',-37,-62,'sentinel'));
   if(s.chapter===4)s.profile.argonAccess=s.argonStage;
@@ -376,6 +433,15 @@ function performCampaignAction(s,id){
    if(s.argonStage===1)spawnReserve(s);
   }
   emit(s,'levelcheckpoint');emit(s,'radio',{text:data.radio});return;
+ }
+ if(s.chapter===8){
+  s.score+=300;
+  if(s.levelStage===0){
+   s.levelStage=1;spawnTowerGuards(s);saveTower(s);
+  }else if(s.towerFloor<WARDEN_FLOORS.length-1){
+   loadTowerFloor(s,s.towerFloor+1,0);saveTower(s,true);
+  }else{s.profile.wardenCleared=true;finish(s)}
+  emit(s,'radio',{text:action.radio});return;
  }
  if(s.onFoot){enterChapter(s,s.chapter===1?7:s.chapter+1);return}
  if(s.chapter===0&&s.levelStage===4){enterChapter(s,1);return}
@@ -388,7 +454,7 @@ function dismount(s){
 }
 function tickCampaign(s,dt){
  const map=s.levelMap,p=s.player;
- for(const shard of s.levelShards)if(!shard.gone&&dist(p,shard)<2){shard.gone=true;s.shardsFound.add(shard.id);s.score+=250;p.hp=clamp(p.hp+20,0,100);checkpointLevel(s);emit(s,'radio',{text:shard.text})}s.levelShards=s.levelShards.filter(q=>!q.gone);
+ for(const shard of s.levelShards)if(!shard.gone&&dist(p,shard)<2){shard.gone=true;s.shardsFound.add(shard.id);s.score+=250;p.hp=clamp(p.hp+20,0,100);if(s.chapter===8)saveTower(s);else checkpointLevel(s);emit(s,'radio',{text:shard.text})}s.levelShards=s.levelShards.filter(q=>!q.gone);
  if(map.stages){
   for(const event of map.encounters)if(event.stage>=s.levelStage-1&&event.stage<=s.levelStage&&!s.encountersSeen.has(event.id)&&dist(p,event.at)<event.radius){s.encountersSeen.add(event.id);event.units.forEach(([x,z,type],i)=>s.enemies.push(guard(event.id+'-'+i,x,z,type)));emit(s,'message',{text:event.id==='cell'?'ECHO / LOCAL CHANNEL CONNECTED':event.id==='apron'?'FREIGHT SECURITY / SIGNATURE CHECK':'SECURITY RESPONSE / '+event.id.toUpperCase()})}
   const stage=map.stages[s.levelStage];if(stage.kind==='reach'&&dist(p,stage.point)<5){s.levelStage++;checkpointLevel(s);emit(s,'radio',{text:map.stages[s.levelStage].radio})}return;
@@ -409,18 +475,23 @@ function roadRiderTick(s,b,dt){
 function campaignNavigation(s){
  const map=s.levelMap;if(s.onFoot)return{point:map.foot.point,label:map.foot.label==='BOARD'?'ARMOR BAY':'WHITE SIGNAL'};
  if(map.stages){
-  const stage=map.stages[s.levelStage],p=s.player;let cache=s.navCache;
-  if(!cache||cache.stage!==s.levelStage||!cache.route.length||!clearLine(s,p,cache.route[0],.5)||s.time-cache.time>.8&&dist(cache.from,p)>4){
-   const radius=1.2,line=(a,b,r)=>clearLine(s,a,b,dist(a,p)<.01||dist(b,p)<.01?.5:r),raw=floorRoute(map,p,stage.point,(x,z,r)=>walkable(s,x,z,r),radius,line),route=[];
+  const stage=map.stages[s.levelStage],p=s.player;
+  const remaining=stage.guards?s.enemies.filter(e=>e.alive):[];
+  const destination=remaining.length?remaining.reduce((a,b)=>dist(p,a)<dist(p,b)?a:b):stage.point;
+  let cache=s.navCache;
+  if(!cache||cache.stage!==s.levelStage||dist(cache.destination,destination)>2||!cache.route.length||!clearLine(s,p,cache.route[0],.5)||s.time-cache.time>.8&&dist(cache.from,p)>4){
+   const radius=1.2,line=(a,b,r)=>clearLine(s,a,b,dist(a,p)<.01||dist(b,p)<.01?.5:r),raw=floorRoute(map,p,destination,(x,z,r)=>walkable(s,x,z,r),radius,line),route=[];
    // Keep real turns instead of drawing a diagonal shortcut across a room's props.
    let previous={x:p.x,z:p.z},heading=null;for(let i=0;i<raw.length;i++){const q=raw[i],h=Math.atan2(q.x-previous.x,q.z-previous.z);if(heading!==null&&Math.abs(wrap(h-heading))>.02)route.push(raw[i-1]);heading=h;previous=q}if(raw.length)route.push(raw.at(-1));
-   cache=s.navCache={stage:s.levelStage,time:s.time,from:{x:p.x,z:p.z},route};
+   cache=s.navCache={stage:s.levelStage,time:s.time,from:{x:p.x,z:p.z},destination:{x:destination.x,z:destination.z},route};
   }
   while(cache.route.length>1&&dist(p,cache.route[0])<1.1&&clearLine(s,p,cache.route[1],.7))cache.route.shift();
-  return{point:cache.route[0]||stage.point,label:stage.name,destination:stage.point};
+  return{point:cache.route[0]||destination,label:remaining.length?'SECURITY / '+remaining.length+' LEFT':stage.name,destination,route:cache.route};
  }
  if(map.powers)for(const power of map.powers){const unit=s.enemies.find(e=>e.id===power.id);if(unit?.alive){const gate=map.doors.find(d=>d.power===power.id),at=nearestRoad(map,gate).s;if(s.roadS>at-55&&s.roadS<at+18)return{point:power,label:'SECURITY DAM / POWER CORE'}}}
- return{point:roadPoint(map,Math.min(map.routeLength,s.roadS+30)),label:s.chapter===1?'FREIGHT LINE 07':'DRY AQUEDUCT'};
+ const current=nearestRoad(map,s.player).s;
+ const route=[14,28,42,56].map(offset=>roadPoint(map,Math.min(map.routeLength,current+offset)));
+ return{point:route[0],route,label:s.chapter===1?'FREIGHT LINE 07':'DRY AQUEDUCT'};
 }
 function campaignObjective(s){
  if(s.onFoot)return s.levelMap.foot.objective;

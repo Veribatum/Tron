@@ -5,7 +5,7 @@ import {CITY_RELAY,SKYPORT,SKY_EXIT,PATROL_ROUTES,ARGON_ACCESS,ARGON_RETURN} fro
 import {sceneFor,ARCHIVE_SCENE,recap} from '../src/story.js';
 import {jetModel,animateJet,programModel,animateProgram} from '../src/art.js';
 const tick=(s,t,input={})=>{const events=[];for(let i=0;i<Math.ceil(t/.02)&&!s.dead&&!s.finished;i++)events.push(...M.advance(s,.02,input));return events};
-test('every story sector has a short scene, a current objective and a resumable save',()=>{for(let chapter=0;chapter<=7;chapter++){const p={...M.newProfile('OLD CODE'),checkpoint:chapter,checkpointScore:1234},s=M.createRun({profile:p});assert(M.validProfile(s.profile));assert(sceneFor(chapter).shots.length);for(const shot of sceneFor(chapter).shots){assert(shot.text.length<320);assert.equal(shot.camera.length,3);assert.equal(shot.look.length,3)}assert(recap(s).length>40);assert.equal(s.chapter,chapter);if(chapter)assert.equal(s.score,1234)}assert(ARCHIVE_SCENE.shots.some(s=>s.text.includes('root key')))});
+test('every story sector has a short scene, a current objective and a resumable save',()=>{for(let chapter=0;chapter<=8;chapter++){const p={...M.newProfile('OLD CODE'),checkpoint:chapter,checkpointScore:1234},s=M.createRun({profile:p});assert(M.validProfile(s.profile));assert(sceneFor(chapter).shots.length);for(const shot of sceneFor(chapter).shots){assert(shot.text.length<320);assert.equal(shot.camera.length,3);assert.equal(shot.look.length,3)}assert(recap(s).length>40);assert.equal(s.chapter,chapter);if(chapter)assert.equal(s.score,1234)}assert(ARCHIVE_SCENE.shots.some(s=>s.text.includes('root key')))});
 test('the former refuge ending becomes the city midpoint and preserves old character progress',()=>{const legacy={name:'CIRCUIT',color:'violet',checkpoint:3,cleared:true,flynnFound:true,bestDisc:50,bestCycle:60,checkpointScore:5000};assert(M.validProfile(legacy));const s=M.createRun({profile:legacy});assert(s.archiveRead);assert(!s.finished);assert(!s.profile.cleared);s.player.x=M.REFUGE_EXIT.x;s.player.z=M.REFUGE_EXIT.z;M.advance(s,.02);assert.equal(s.chapter,4);assert.equal(s.profile.checkpoint,4);assert.equal(s.score,5000);assert.equal(s.profile.name,'CIRCUIT');assert(s.citizens.length>=7);assert.equal(s.enemies.length,3);assert(s.events.some(e=>e.kind==='checkpoint'))});
 test('city relay gates the skyport, then hands off to a playable jet rather than ending the story',()=>{const s=M.createRun({profile:{...M.newProfile(),checkpoint:4}});s.player.x=SKYPORT.x;s.player.z=SKYPORT.z;M.advance(s,.02);assert.equal(s.chapter,4,'skyport is locked before the relay');s.player.x=CITY_RELAY.x;s.player.z=CITY_RELAY.z;assert(!M.canAccessRelay(s));s.enemies=[];
  for(const tap of ARGON_ACCESS){Object.assign(s.player,{x:tap.x,z:tap.z});assert(M.act(s,'interact'));tick(s,.4)}
@@ -51,11 +51,38 @@ test('the air battle leads to the reserve, bridge isolation and registry restora
  assert(M.act(s,'interact'));tick(s,.4);assert.equal(s.argonStage,3);
  tick(s,4.3,{z:-1});assert.equal(s.player.y,0);assert(!s.onBridge);
  s.enemies.find(e=>e.id==='reserve-registry').alive=false;
- use(ARGON_RETURN[3]);assert(s.finished);assert(s.profile.cleared);
- M.enterChapter(s,6);assert(!s.finished);assert.equal(s.enemies.length,0);assert(M.objective(s).includes('free'));
+ use(ARGON_RETURN[3]);assert.equal(s.chapter,8);assert(!s.finished);assert(!s.profile.cleared);
  const practice=M.createRun({mode:'jet',profile:{...s.profile,checkpoint:4}});
  for(const c of practice.cores)c.alive=false;
  M.advance(practice,.02);assert(practice.finished);assert.equal(practice.profile.checkpoint,4);
+});
+test('Spire floors have connected paths, combat locks and resumable lifts, then unlock recovery',()=>{
+ const s=M.createRun({profile:{...M.newProfile(),checkpoint:6,cleared:true}});
+ assert.equal(s.chapter,8);
+ let length=0;
+ for(const elevation of [0,32,72]){
+  assert.equal(s.levelMap.elevation,elevation);
+  for(const stage of [0,1]){
+   assert.equal(s.levelStage,stage);
+   const target=s.levelMap.stages[stage].point;
+   assert(s.enemies.length>=2);
+   for(const e of s.enemies)assert(M.walkable(s,e.x,e.z),e.id);
+   const path=M.routeTo(s,s.player,target);assert(path.length);
+   let last=s.player;
+   for(const point of path){assert(M.clearLine(s,last,point,.7));length+=M.dist(last,point);last=point}
+   Object.assign(s.player,target);assert(!M.campaignInteraction(s));
+   for(const e of s.enemies)e.alive=false;
+   assert(M.act(s,'interact'));tick(s,.4);
+   if(!s.finished){
+    const resumed=M.createRun({profile:s.profile});
+    assert.equal(resumed.towerFloor,s.towerFloor);assert.equal(resumed.levelStage,s.levelStage);
+   }
+  }
+ }
+ assert(length>450);assert(s.finished);assert(s.profile.wardenCleared);
+ const city=M.createRun({profile:s.profile});
+ assert.equal(city.chapter,6);assert.equal(city.enemies.length,3);
+ assert(M.objective(city).includes('blockade'));
 });
 test('a jet can cut an interceptor with its trail while another altitude clears the same path',()=>{
  const s=M.createRun({mode:'jet'});

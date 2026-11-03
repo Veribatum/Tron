@@ -1,19 +1,40 @@
 import * as T from '../vendor/three.module.js';
-import {CELL,roadPoint,FLIGHT_APPROACH} from './levels.js?v=8';
-import {cycleModel,tankModel,COLORS} from './art.js?v=8';
-import {campaignDoors} from './sim.js?v=8';
+import {CELL,roadPoint,FLIGHT_APPROACH} from './levels.js?v=9';
+import {cycleModel,tankModel,COLORS} from './art.js?v=9';
+import {campaignDoors} from './sim.js?v=9';
 export function buildCampaignWorld(v,s,{black,steel,cyan,orange,dim}){
  const map=s.levelMap,road=!!map.road,stone=v.material(road?0x263340:0x1e303b,{roughness:.87}),floorMat=v.material(0x29424d,{roughness:.75,metalness:.25}),tiles=new T.InstancedMesh(new T.BoxGeometry(CELL,.14,CELL),floorMat,map.floor.size),dummy=new T.Object3D(),color=new T.Color();let index=0;
  for(const cell of map.floor.values()){dummy.position.set(cell.x,-.12,cell.z);dummy.updateMatrix();tiles.setMatrixAt(index,dummy.matrix);color.set(cell.room==='ROAD'?0x172b36:cell.room==='FREIGHT APRON'?0x344957:0x3b525c);tiles.setColorAt(index++,color)}v.root.add(tiles);tiles.receiveShadow=true;
+ const tower=s.chapter===8;
  const walls=new T.InstancedMesh(new T.BoxGeometry(1,1,1),road&&s.chapter===2?stone:black,map.walls.length),seams=new T.InstancedMesh(new T.BoxGeometry(1,1,1),road?cyan:dim,map.walls.length),caps=new T.InstancedMesh(new T.BoxGeometry(1,1,1),steel,map.walls.length);let wallIndex=0;
- for(const o of map.walls){dummy.position.set(o.x,o.h/2,o.z);dummy.scale.set(o.w*2,o.h,o.d*2);dummy.updateMatrix();walls.setMatrixAt(wallIndex,dummy.matrix);dummy.position.y=road?.83:3.9;dummy.scale.set(o.w*2+.08,.045,o.d*2+.08);dummy.updateMatrix();seams.setMatrixAt(wallIndex,dummy.matrix);dummy.position.y=6.4;dummy.scale.set(o.w*2+.06,.14,o.d*2+.06);dummy.updateMatrix();caps.setMatrixAt(wallIndex++,dummy.matrix)}v.root.add(walls,seams);if(!road)v.root.add(caps);else{caps.geometry.dispose();caps.dispose()}
+ for(const o of map.walls){const h=tower&&map.elevation>0&&!map.rooms.some(r=>r.roof&&Math.abs(r.x-o.x)<r.w+.4&&Math.abs(r.z-o.z)<r.d+.4)?1.15:o.h;dummy.position.set(o.x,h/2,o.z);dummy.scale.set(o.w*2,h,o.d*2);dummy.updateMatrix();walls.setMatrixAt(wallIndex,dummy.matrix);dummy.position.y=road?.83:Math.min(h,3.9);dummy.scale.set(o.w*2+.08,.045,o.d*2+.08);dummy.updateMatrix();seams.setMatrixAt(wallIndex,dummy.matrix);dummy.position.y=h-.05;dummy.scale.set(o.w*2+.06,.14,o.d*2+.06);dummy.updateMatrix();caps.setMatrixAt(wallIndex++,dummy.matrix)}v.root.add(walls,seams);if(!road)v.root.add(caps);else{caps.geometry.dispose();caps.dispose()}
  for(const o of map.props){if(o.vehicle)continue;v.box(o.w*2,o.h,o.d*2,steel,o.x,o.h/2,o.z);v.box(o.w*2,.04,.04,cyan,o.x,o.h-.12,o.z+o.d+.03);if(o.console){const screen=v.add(new T.PlaneGeometry(o.w*1.8,.55),cyan,o.x,o.h+.15,o.z+.3);screen.rotation.x=-.5}}
  for(const r of map.rooms){if(r.roof){v.box(r.w*2,.28,r.d*2,black,r.x,6.65,r.z);v.box(Math.min(r.w,8),.05,Math.min(r.d,4),new T.MeshBasicMaterial({color:0x7195a4}),r.x,6.46,r.z);for(const side of[-1,1])v.box(.06,.035,r.d*1.5,dim,r.x+side*Math.min(r.w-1.5,8),.015,r.z)}
   if(r.w>8&&r.d>8){const sign=v.textPanel(r.id,Math.min(r.w*1.5,12),1);sign.position.set(r.x,3.8,r.z-r.d+1);v.root.add(sign)}
  }
  v.levelDoors=new Map();for(const d of map.doors){const g=new T.Group();g.position.set(d.x,0,d.z);v.root.add(g);v.box(d.w*2,5.8,d.d*2,steel,0,2.9,0,g);v.box(d.w*2+.05,.13,d.d*2+.05,orange,0,3,0,g);v.box(d.w*2+.05,.10,d.d*2+.05,orange,0,.5,0,g);v.levelDoors.set(d.id,g)}
  v.levelShards=new Map();for(const q of map.shards){const g=v.add(new T.OctahedronGeometry(.55),new T.MeshBasicMaterial({color:0xc9faff}),q.x,1,q.z);v.levelShards.set(q.id,g);const sign=v.textPanel('UNLISTED CACHE',3.5,.55);sign.position.set(q.x,2,q.z-.6);v.root.add(sign)}
- if(!road){
+ if(tower){
+  for(const stage of map.stages){
+   const {x,z}=stage.point,sign=v.textPanel(stage.name,6,.8);
+   sign.position.set(x,2.1,z-1.3);v.root.add(sign);
+   const mark=v.add(new T.RingGeometry(1.25,1.34,40),cyan,x,.06,z);mark.rotation.x=-Math.PI/2;
+   if(stage.label==='ASCEND'||stage.label==='EXTRACT'){
+    for(const side of[-1,1]){v.box(.44,4,.5,steel,x+side*2,2,z-2);v.box(.08,3.7,.1,cyan,x+side*1.72,2,z-1.73)}
+    v.box(4.4,.36,.5,steel,x,4,z-2);
+   }
+  }
+  if(map.elevation>0){
+   const ground=v.material(0x0b202c);
+   v.box(620,1,620,ground,0,-map.elevation-.5,0);
+   for(let i=0;i<28;i++){
+    const angle=i*Math.PI/14,r=106+i%4*14,x=Math.sin(angle)*r,z=Math.cos(angle)*r,h=14+(i*23)%60,w=8+i%3*4;
+    v.box(w,h,w,black,x,h/2-map.elevation,z);
+    v.box(.14,h,.18,dim,x-w/2,h/2-map.elevation,z+w/2);
+    v.box(w,.08,.12,cyan,x,h-map.elevation,z+w/2);
+   }
+  }
+ }else if(!road){
   for(const z of[112,124,136])for(const side of[-1,1]){const x=-64+side*11.5;v.box(.08,3.6,6,new T.MeshBasicMaterial({color:0x153b4b}),x,2,z);for(let k=-2;k<=2;k++)v.box(.12,3.7,.08,steel,x-side*.12,2,z+k)}
   for(const stage of map.stages.filter(q=>q.kind==='use')){const ring=v.add(new T.RingGeometry(1.1,1.18,32),cyan,stage.point.x,.02,stage.point.z);ring.rotation.x=-Math.PI/2;const sign=v.textPanel(stage.label==='POWER'?'MANUAL POWER':stage.label==='READ'?'TRANSIT MANIFEST':'FREIGHT CONTROL',4,.55);sign.position.set(stage.point.x,2.1,stage.point.z-2);v.root.add(sign)}
   const cycle=cycleModel(COLORS.white);cycle.userData.rider.visible=false;cycle.position.set(map.docked.x,0,map.docked.z);cycle.rotation.y=map.docked.yaw;v.root.add(cycle);const bay=v.textPanel('COURIER 07 / FREIGHT LINE',10,1);bay.position.set(68,3.8,-166);v.root.add(bay);

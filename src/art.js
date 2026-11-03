@@ -1,5 +1,5 @@
 import * as T from '../vendor/three.module.js';
-import {CLIPS,gaitFrequency,samplePose,legAngles} from './motion.js?v=8';
+import {CLIPS,gaitFrequency,samplePose,legAngles} from './motion.js?v=9';
 export const COLORS={cyan:0x67e9ff,white:0xe6f7ff,violet:0xc39cff,orange:0xff873c,red:0xff424d};
 const metal=(color=0x080c12)=>new T.MeshStandardMaterial({color,metalness:.75,roughness:.27});
 const light=color=>new T.MeshBasicMaterial({color});

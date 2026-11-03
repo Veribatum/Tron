@@ -54,7 +54,7 @@ const tank={id:'aqueduct',name:'DRY AQUEDUCT / THE WHITE SIGNAL',bounds:{x:140,z
 function prepare(map){
  if(map.id==='highway')map.props.push({x:12,z:-196,w:.4,d:10,h:6.5,wall:true},{x:24,z:-206,w:12,d:.4,h:6.5,wall:true},{x:36,z:-196,w:.4,d:10,h:6.5,wall:true});
  if(map.id==='aqueduct')map.props=map.props.map((o,i)=>{const q=roadPoint(map,map.road.at(-1).s*[.16,.37,.58,.79][i]),side=i%2?1:-1;return{...o,x:q.x+Math.cos(q.yaw)*15*side,z:q.z-Math.sin(q.yaw)*15*side}});
- if(map.id!=='aqueduct'){const d=map.docked;map.props.push({x:d.x,z:d.z,w:d.kind==='tank'?2.2:.7,d:d.kind==='tank'?3.5:2.4,h:2.5,vehicle:true})}
+ if(map.docked&&map.id!=='aqueduct'){const d=map.docked;map.props.push({x:d.x,z:d.z,w:d.kind==='tank'?2.2:.7,d:d.kind==='tank'?3.5:2.4,h:2.5,vehicle:true})}
  if(map.stages)for(const stage of map.stages)if(stage.kind==='use')map.props.push({x:stage.point.x,z:stage.point.z-2,w:1.2,d:.8,h:1.2,console:true});
  const floor=new Map();
  for(const r of map.rooms)for(let x=Math.floor((r.x-r.w)/CELL);x<Math.ceil((r.x+r.w)/CELL);x++)for(let z=Math.floor((r.z-r.d)/CELL);z<Math.ceil((r.z+r.d)/CELL);z++)floor.set(key(x,z),{x:(x+.5)*CELL,z:(z+.5)*CELL,room:r.id});
@@ -75,3 +75,47 @@ export function floorRoute(map,a,b,canWalk,radius=.7,canLine=()=>true){
  }return[];
 }
 export const FLIGHT_APPROACH=[{x:0,y:38,z:120,label:'SKYPORT DEPARTURE'},{x:-56,y:36,z:50,label:'WEST MEMORY CHANNEL'},{x:-64,y:36,z:-35,label:'WEST UPLINK'},{x:0,y:48,z:-72,label:'CENTRAL VIADUCT'},{x:65,y:58,z:-103,label:'EAST UPLINK'},{x:20,y:48,z:-145,label:'WARDEN SPINE'},{x:0,y:43,z:-169,label:'COMMAND UPLINK'}];
+
+const towerStage=(name,x,z,sx,sz,label,objective,radio,guards)=>({
+ name,point:{x,z},spawn:{x:sx,z:sz},kind:'use',label,aria:name,objective,radio,guards
+});
+const towerFloor=(id,name,elevation,rooms,props,stages,shards=[],doors=[])=>prepare({
+ id,name,elevation,bounds:{x:96,z:104},rooms,props,stages,shards,doors,encounters:[]
+});
+export const WARDEN_FLOORS=[
+ towerFloor('warden-intake','01 / INTAKE',0,[
+  rect('PUBLIC INTAKE',0,68,16,16),rect('CHECKPOINT SPINE',0,42,4,14),rect('INTAKE SORTER',-20,24,24,12),
+  rect('COLD STORAGE',-54,24,14,12),rect('BYPASS / NORTH',-48,-4,4,20),
+  rect('BYPASS / SOUTH',-12,-4,4,20),rect('CAPTIVE RECORDS',-30,-32,26,12),
+  rect('LIFT ACCESS',-8,-56,4,16),rect('ASCENT LIFT',-8,-78,12,10)
+ ],[
+  {x:-22,z:24,w:5,d:4,h:2.6},{x:-43,z:-33,w:4,d:3,h:3},{x:-20,z:-25,w:3,d:4,h:2}
+ ],[
+  towerStage('CAPTIVE RECORDS',-35,-32,0,74,'RELEASE','Fight through intake and release the captive identities','MARA: The service lift opens at the far end of records. I’ll get these programs out.',[[0,50,'disc'],[-32,28,'striker'],[-49,14,'disc'],[-35,-37,'sentinel'],[-14,-32,'disc']]),
+  towerStage('ASCENT LIFT',-8,-76,-28,-36,'ASCEND','Take the lift to the processing ring','ECHO: Going up. The Warden is burning the evidence upstairs.',[[-8,-64,'striker'],[-14,-75,'disc']])
+ ],[{id:'intake-cache',x:-57,z:24,text:'An intake clerk kept spare charge for fugitives in cold storage.'}],
+ [{id:'intake-lift-lock',x:-8,z:-54,w:4,d:.4,opensAt:1}]),
+ towerFloor('warden-ring','02 / PROCESSING RING',32,[
+  rect('LIFT LANDING',-8,-78,12,10),rect('SERVICE CATWALK',-8,-52,4,20,false),
+  rect('VENT GALLERY',12,-28,24,12),rect('WEST SWITCHBACK',-8,0,4,20,false),
+  rect('EAST SWITCHBACK',32,0,4,20,false),rect('SHUNT PLATFORM',12,28,26,12,false),
+  rect('TRANSFER TRUSS',32,52,4,16,false),rect('CROWN LIFT',32,76,12,12)
+ ],[
+  {x:9,z:-28,w:4,d:4,h:3},{x:24,z:-32,w:3,d:3,h:2},{x:13,z:28,w:5,d:3,h:2}
+ ],[
+  towerStage('COOLANT SHUNT',8,32,-8,-76,'DIVERT','Cross the processing ring and divert the purge coolant','ECHO: Purge paused. Take the transfer truss to the crown lift.',[[-8,-53,'disc'],[26,-27,'striker'],[-8,3,'disc'],[32,9,'striker'],[9,35,'sentinel']]),
+  towerStage('CROWN LIFT',32,78,19,33,'ASCEND','Fight across the transfer truss and take the crown lift','WARDEN: There is no district without its keeper.',[[32,51,'disc'],[36,74,'striker'],[27,79,'disc']])
+ ],[{id:'ring-cache',x:-9,z:-32,text:'The ring crew left a service charge behind the west vent.'}],
+ [{id:'crown-lift-lock',x:32,z:48,w:4,d:.4,opensAt:1}]),
+ towerFloor('warden-crown','03 / BROADCAST CROWN',72,[
+  rect('CROWN ARRIVAL',32,76,12,12),rect('ANTENNA WALK',32,52,4,16,false),
+  rect('BROADCAST TERRACE',8,28,28,12,false),rect('ACCESS CATWALK',-16,0,4,20,false),
+  rect('CONTROL VAULT',-16,-30,20,16),rect('OUTBOUND GANTRY',0,-55,4,13,false),
+  rect('EXTRACTION DECK',0,-77,16,12,false)
+ ],[
+  {x:9,z:28,w:5,d:3,h:2.4},{x:-25,z:-33,w:3,d:5,h:3},{x:-5,z:-24,w:3,d:3,h:2}
+ ],[
+  towerStage('WARDEN CONTROL VAULT',-18,-32,32,78,'SEVER','Fight through the crown and sever the Warden’s command link','MARA: The registry is ours. Move to extraction before his reserve cuts the gantry.',[[32,53,'disc'],[21,27,'striker'],[-10,23,'disc'],[-16,3,'striker'],[-20,-36,'sentinel'],[-2,-33,'disc']]),
+  towerStage('EXTRACTION DECK',0,-76,-9,-37,'EXTRACT','Reach the extraction deck and signal Mara','MARA: I see you. Get aboard.',[[0,-56,'striker'],[-9,-76,'disc'],[9,-78,'sentinel']])
+ ],[],[{id:'extraction-lock',x:0,z:-57,w:4,d:.4,opensAt:1}])
+];
