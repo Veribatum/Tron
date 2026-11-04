@@ -12,6 +12,15 @@ test('melee damage arrives at contact, can miss a retreating target, and is canc
  const miss=duel();M.act(miss,'attack');miss.enemies[0].z=-2;tick(miss,.3);assert.equal(miss.enemies[0].hp,500);
  const canceled=duel();M.act(canceled,'attack');M.act(canceled,'dash');tick(canceled,.4);assert.equal(canceled.enemies[0].hp,500);assert.equal(canceled.player.pending,null);
 });
+test('a short step closes melee range, the next strike buffers, and dodging follows input',()=>{
+ const s=duel();s.enemies[0].z=8;s.enemies[0].stagger=2;
+ assert(M.act(s,'attack'));
+ tick(s,.12);assert(s.player.z<11.2);assert.equal(s.enemies[0].hp,500);
+ M.advance(s,.01,{attack:true});tick(s,.39);
+ assert.equal(s.combo,2);assert.equal(s.enemies[0].hp,438);
+ const start=s.player.x;M.advance(s,.01,{dash:true,x:1});
+ assert(s.player.x>start);assert.equal(s.player.dashZ,0);
+});
 test('a disc exists only after release, uses the moving character position, and registers a catch',()=>{
  const s=duel();s.enemies[0].z=2;M.act(s,'attack');assert.equal(s.discs.length,0);assert.equal(s.player.anim,'throw');tick(s,.16,{x:1});assert.equal(s.discs.length,0);tick(s,.03,{x:1});assert.equal(s.discs.length,1);assert(s.discs[0].x>.5);assert.equal(s.discs[0].height,CLIPS.throw.muzzle[1]);tick(s,2);assert.equal(s.discs.length,0);assert(s.player.catchAge<2);
 });

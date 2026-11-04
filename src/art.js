@@ -1,5 +1,5 @@
 import * as T from '../vendor/three.module.js';
-import {CLIPS,gaitFrequency,samplePose,legAngles} from './motion.js?v=11';
+import {CLIPS,gaitFrequency,samplePose,legAngles} from './motion.js?v=12';
 export const COLORS={cyan:0x67e9ff,white:0xe6f7ff,violet:0xc39cff,orange:0xff873c,red:0xff424d};
 const metal=(color=0x080c12)=>new T.MeshStandardMaterial({color,metalness:.75,roughness:.27});
 const light=color=>new T.MeshBasicMaterial({color});
@@ -21,28 +21,23 @@ function oval(g,mat,r,x,y,z,sx,sy,sz){const m=sphere(g,mat,r,x,y,z);m.scale.set(
 export function programModel(color=COLORS.cyan,{heavy=false,rider=false,frame='male',helmet=true,style='standard'}={}){
  const female=frame==='female',mara=style==='mara',g=new T.Group(),suit=new T.MeshStandardMaterial({color:0x111b29,roughness:mara?.25:.47,metalness:.3}),armor=new T.MeshStandardMaterial({color:mara?0x263340:heavy?0x3b434b:0x283847,roughness:.37,metalness:.4}),edge=metal(0x526572),glow=light(color),rubber=metal(0x080e16),face=new T.MeshStandardMaterial({color:female?0xd4b4a0:0xbca78e,roughness:.68,metalness:0}),hair=new T.MeshStandardMaterial({color:0x10161c,roughness:.9,metalness:0}),rig={};
  const hips=new T.Group();hips.position.y=1.03;g.add(hips);rig.hips=hips;
- const pelvis=mesh(hips,surface([[-.12,.19,.12],[0,.245,.15],[.1,female?.21:.23,.14],[.16,.18,.13]]),suit);pelvis.scale.x=heavy?1.25:1;
+ const pelvis=mesh(hips,surface([[-.12,.19,.12],[0,.245,.15],[.1,female?.21:.23,.14],[.16,.18,.13]]),suit);pelvis.scale.x=heavy?1.09:1;
  const torso=new T.Group();hips.add(torso);rig.torso=torso;
- mesh(torso,surface([[.05,.20,.135],[.18,female?.16:.21,.12],[.32,female?.18:.245,.13],[.47,female?.245:.29,female?.18:.17],[.60,female?.255:.30,.15],[.69,female?.22:.27,.115],[.73,.105,.09]]),suit).scale.x=heavy?1.25:1;
+ mesh(torso,surface([[.05,.20,.135],[.18,female?.16:.21,.12],[.32,female?.18:.245,.13],[.47,female?.245:.29,female?.18:.17],[.60,female?.221:.255,.15],[.69,female?.167:.197,.115],[.73,.105,.09]]),suit).scale.x=heavy?1.09:1;
  if(mara){
-  const neckline=new T.Shape();
-  neckline.moveTo(-.12,.706);neckline.quadraticCurveTo(-.105,.60,0,.49);
-  neckline.quadraticCurveTo(.105,.60,.12,.706);
-  neckline.quadraticCurveTo(0,.765,-.12,.706);
-  mesh(torso,new T.ShapeGeometry(neckline,12),face,0,0,.183);
-  circuit(torso,glow,[[-.12,.706,.186],[-.09,.61,.185],[0,.49,.186],[.09,.61,.185],[.12,.706,.186]],.008);
-  circuit(torso,glow,[[-.19,.40,.177],[-.12,.31,.154],[.12,.23,.155],[.17,.13,.15]],.009);
+  circuit(torso,glow,[[-.13,.68,.116],[-.13,.56,.156],[-.067,.46,.179],[.069,.39,.145],[.105,.27,.128],[.12,.15,.128]],.011);
+  circuit(torso,glow,[[.12,.68,-.116],[.12,.56,-.146],[.071,.42,-.168],[-.108,.31,-.139],[-.12,.16,-.131]],.01);
  }
  for(const side of[-1,1]){
-  const plate=mesh(torso,surface([[.36,.085,.028],[.43,.12,.06],[.54,.125,.055],[.62,.105,.03],[.65,.07,.015]],20),armor,side*(female?.118:.132),0,.13);plate.rotation.z=side*-.08;if(mara){plate.scale.set(.78,.85,.83);plate.position.y=.045;plate.position.x=side*.138;}
-  circuit(torso,glow,[[side*.08,.67,.145],[side*.21,.63,.15],[side*(female?.225:.27),.51,.15],[side*.17,.37,.16],[side*(female?.135:.17),.22,.137]]);
+  if(!mara){const plate=mesh(torso,surface([[.36,.085,.028],[.43,.12,.06],[.54,.125,.055],[.62,.105,.03],[.65,.07,.015]],20),armor,side*(female?.118:.132),0,.13);plate.rotation.z=side*-.08;}
+  if(!mara)circuit(torso,glow,[[side*.08,.67,.126],[side*.176,.63,.131],[side*(female?.193:.221),.51,.133],[side*.153,.37,.122],[side*(female?.12:.15),.22,.114]],.01);
   circuit(torso,edge,[[side*.10,.37,.151],[side*.08,.27,.135],[side*.09,.17,.14]],.007);
   circuit(torso,glow,[[side*.20,.13,-.12],[side*.23,.35,-.14],[side*.22,.58,-.14],[side*.1,.66,-.12]],.009);
   circuit(torso,glow,[[side*.055,.18,-.15],[side*.10,.26,-.18],[side*.14,.31,-.17]],.009);
   circuit(torso,edge,[[side*.13,.57,.194],[side*.18,.54,.197],[side*.19,.46,.192]],.009);
   const belt=box(torso,armor,.12,.06,.28,side*.14,.075,0);belt.rotation.z=side*.08;
  }
- for(let i=0;i<3;i++){const plate=mesh(torso,surface([[.13+i*.068,.09,.022],[.17+i*.068,.10,.025],[.19+i*.068,.08,.01]],16),armor,0,0,.133);}
+ for(let i=0;i<(mara?0:2);i++){mesh(torso,surface([[.13+i*.068,.09,.022],[.17+i*.068,.10,.025],[.19+i*.068,.08,.01]],16),armor,0,0,.133);}
  box(torso,glow,.055,.025,.017,0,.09,.157);
  const socket=mesh(torso,new T.TorusGeometry(.205,.023,8,32),edge,0,.48,-.158);
  socket.scale.set(1,1,.65);
@@ -53,10 +48,23 @@ export function programModel(color=COLORS.cyan,{heavy=false,rider=false,frame='m
  if(!helmet){const p=headGeometry.attributes.position;for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i);if(z>0){const cheek=.012*Math.exp(-Math.pow((Math.abs(x)-.075)/.045,2)-Math.pow((y+.04)/.055,2));const socket=.008*Math.exp(-Math.pow((Math.abs(x)-.055)/.03,2)-Math.pow((y-.026)/.026,2));p.setZ(i,z+cheek-socket)}}headGeometry.computeVertexNormals()}
  mesh(head,headGeometry,helmet?armor:face);
  if(helmet){
-  const visor=mesh(head,new T.SphereGeometry(.152,28,16,0,Math.PI,Math.PI*.23,Math.PI*.5),new T.MeshPhysicalMaterial({color:0x040e19,metalness:.85,roughness:.12,clearcoat:1}));visor.rotation.y=0;visor.position.set(0,.016,.016);visor.scale.set(1,1.08,1.06);
-  circuit(head,glow,[[-.136,.05,.06],[-.115,.09,.13],[0,.10,.17],[.115,.09,.13],[.136,.05,.06]],.008);
-  circuit(head,edge,[[-.12,-.05,.10],[-.09,-.12,.115],[0,-.15,.10],[.09,-.12,.115],[.12,-.05,.10]],.012);
-  for(const side of[-1,1]){oval(head,rubber,.067,side*.14,.018,0,.32,1,1);circuit(head,glow,[[side*.15,-.055,-.02],[side*.155,.035,-.035],[side*.13,.125,-.025]],.009)}
+  const visorGeometry=new T.BufferGeometry();
+  visorGeometry.setAttribute('position',new T.Float32BufferAttribute([
+   0,.112,.138, -.121,.071,.094, -.112,-.052,.112, -.058,-.122,.118,
+   0,-.148,.139, .058,-.122,.118, .112,-.052,.112, .121,.071,.094,
+   0,.002,.166
+  ],3));
+  visorGeometry.setIndex([0,1,8,1,2,8,2,3,8,3,4,8,4,5,8,5,6,8,6,7,8,7,0,8]);
+  visorGeometry.computeVertexNormals();
+  mesh(head,visorGeometry,new T.MeshPhysicalMaterial({color:0x030813,metalness:.62,roughness:.21,clearcoat:1}));
+  circuit(head,glow,mara?[[-.117,.071,.103],[-.066,.043,.148],[.047,.04,.156],[.117,.07,.107]]:[[-.114,.07,.104],[-.058,.076,.139],[0,.05,.163],[.058,.076,.139],[.114,.07,.104]],.007);
+  if(!mara)circuit(head,glow,[[0,.041,.165],[0,-.036,.166],[0,-.091,.154]],.006);
+  for(const side of[-1,1])circuit(head,edge,[[side*.113,-.048,.115],[side*.075,-.125,.112],[side*.015,-.148,.139]],.006);
+  if(mara){
+   circuit(head,glow,[[.113,.07,.105],[.138,.05,.008],[.126,.081,-.063],[.086,.116,-.082]],.006);
+   circuit(head,glow,[[-.078,.088,-.102],[0,.103,-.122],[.07,.10,-.102]],.006);
+  }
+
  }else{
   oval(head,hair,.146,0,.10,-.025,1, .77, .94);
   if(mara){
@@ -71,8 +79,9 @@ if(female){for(const side of[-1,1]){
   oval(head,face,.028,0,-.015,.137,.55,1.25,1.1);oval(head,new T.MeshStandardMaterial({color:mara?0x804454:0x986a66,roughness:mara?.42:.8}),.027,0,-.078,.122,1.12,.23,.35);
  }
  for(const side of[-1,1]){
-  const suffix=side<0?'L':'R',shoulder=new T.Group();shoulder.position.set(side*(heavy?.385:female?.265:.305),.625,0);torso.add(shoulder);
-  oval(shoulder,armor,female?.095:.105,side*.015,-.035,0,heavy?1.45:1,.78,1);circuit(shoulder,glow,[[side*.05,.017,.083],[side*.105,-.04,.06],[side*.095,-.10,.018]],.009);
+  const suffix=side<0?'L':'R',shoulder=new T.Group();shoulder.position.set(side*(heavy?.285:female?.222:.247),.625,0);torso.add(shoulder);
+  mesh(shoulder,surface([[-.13,.06,.059],[-.06,.074,.077],[.01,.067,.067],[.033,.039,.052]],20),mara?suit:armor);
+  if(!mara)circuit(shoulder,glow,[[side*.008,.024,.055],[side*.048,-.015,.062],[side*.063,-.074,.046]],.007);
   mesh(shoulder,surface([[-.32,.055,.057],[-.24,.075,.078],[-.13,female?.075:.09,.085],[-.06,.07,.07]]),suit);
   const elbow=new T.Group();elbow.position.y=-.325;shoulder.add(elbow);oval(elbow,rubber,.059,0,0,0,1,.9,1);
   mesh(elbow,surface([[-.29,.043,.045],[-.22,.065,.063],[-.1,.073,.067],[-.045,.06,.055]]),armor);
@@ -83,7 +92,7 @@ if(female){for(const side of[-1,1]){
   shoulder.rotation.z=side*.09;elbow.rotation.x=-.15;rig['arm'+suffix]=shoulder;rig['elbow'+suffix]=elbow;rig['hand'+suffix]=hand;
   const leg=new T.Group();leg.position.set(side*(female?.139:.145),-.03,0);hips.add(leg);
   mesh(leg,surface([[-.43,.069,.073],[-.34,.09,.097],[-.16,female?.115:.11,.117],[-.05,.11,.109],[.015,.095,.09]]),suit);
-  const thigh=oval(leg,armor,.1,side*.04,-.21,.044,.75,1.7,.5);thigh.rotation.z=side*.08;
+  const thigh=oval(leg,mara?suit:armor,.1,side*.04,-.21,.044,.75,1.7,.5);thigh.rotation.z=side*.08;
   circuit(leg,glow,[[side*.079,-.06,.063],[side*.09,-.20,.073],[side*.065,-.37,.066]],.01);
   const knee=new T.Group();knee.position.y=-.445;leg.add(knee);oval(knee,rubber,.074,0,0,0,1,1,.8);oval(knee,armor,.08,0,-.005,.047,.8,1.05,.6);
   mesh(knee,surface([[-.43,.061,.064],[-.31,.066,.081],[-.14,.092,.091],[-.045,.073,.073]]),armor);
@@ -92,7 +101,7 @@ if(female){for(const side of[-1,1]){
   rig['leg'+suffix]=leg;rig['knee'+suffix]=knee;
  }
  const handDisc=discModel(color);handDisc.scale.setScalar(.63);handDisc.rotation.y=Math.PI/2;handDisc.position.set(.065,-.065,.055);rig.handR.add(handDisc);rig.disc=handDisc;
- g.userData.rig=rig;g.userData.phase=0;g.userData.rider=rider;g.userData.frame=frame;if(rider)g.scale.setScalar(.74);return g;
+ g.userData.rig=rig;g.userData.phase=0;g.userData.rider=rider;g.userData.frame=frame;g.userData.mara=mara;if(rider)g.scale.setScalar(.74);return g;
 }
 const unitDown=new T.Vector3(0,-1,0),mix=(a,b,t)=>a+(b-a)*t,cap=(n,a,b)=>Math.max(a,Math.min(b,n));
 function armIK(g,side,target,weight=1){
@@ -106,7 +115,7 @@ export function animateProgram(g,dt,state={}){
  let clip=state.clip||'',age=state.age||0;if(!clip&&state.action>0){clip='throw';age=.42-state.action}
  const pose=samplePose({phase:m.phase,speed:m.speed,moveX:state.moveX||0,moveZ:state.moveZ??1,time:m.time,turn:state.turn||0,clip,age,windup:state.windupRatio||0,heavy:state.heavy,hitAge:state.hitAge,catchAge:state.catchAge,crouching:state.crouching});
  if(g.userData.rider){pose.hipY=.70;pose.hipZ=0;pose.hips=[0,0,-(state.bank||0)*.12];pose.torso=[.98+(state.boosting?.09:0)-(state.braking?.08:0),0,-(state.bank||0)*.15];pose.head=[-.55,cap(state.turn||0,-1,1)*.12,0];pose.footL=[-.392,.02,-.34];pose.footR=[.392,.02,-.34];pose.fingersL=pose.fingersR=.95;pose.toeL=pose.toeR=.1;if(clip==='throw'||(state.catchAge??99)<.3)pose.armR[0]-=pose.torso[0];}
- const weight=m.ready?1-Math.exp(-dt*28):1;m.ready=true;
+ const weight=m.ready?1-Math.exp(-dt*(clip.startsWith('slash')?44:28)):1;m.ready=true;
  r.hips.position.lerp(new T.Vector3(pose.hipX,pose.hipY,pose.hipZ),weight);
  for(const[name,values]of Object.entries({hips:pose.hips,torso:pose.torso,head:pose.head,armL:pose.armL,armR:pose.armR,elbowL:pose.elbowL,elbowR:pose.elbowR,handL:pose.wristL,handR:pose.wristR})){const joint=r[name];for(let i=0;i<3;i++){const axis=['x','y','z'][i];joint.rotation[axis]=mix(joint.rotation[axis],values[i],weight)}}
  const inverse=r.hips.quaternion.clone().invert();for(const side of['L','R']){
@@ -116,7 +125,8 @@ export function animateProgram(g,dt,state={}){
  }
  if(g.userData.rider){armIK(g,'L',[-.419,.811,.851]);const attack=clip==='throw'?cap(age/.08,0,1)*(1-cap((age-.4)/.24,0,1)):0,catching=(state.catchAge??99)<.3?Math.sin(state.catchAge/.3*Math.PI):0;armIK(g,'R',[.419,.811,.851],1-Math.max(attack,catching));}
  const blinkPhase=m.time%4.6,blink=blinkPhase>4.36?1-Math.sin((blinkPhase-4.36)/.24*Math.PI):1;for(const eye of r.eyes||[])eye.scale.y=Math.max(.06,blink);
- const inFlight=!!state.thrown;const ridingHand=g.userData.rider&&(clip==='throw'&&age<.18||(state.catchAge??99)<.3);r.disc.visible=(!g.userData.rider||ridingHand)&&!inFlight;r.backDisc.visible=!!g.userData.rider&&!ridingHand&&!inFlight;
+ const inFlight=!!state.thrown;const ridingHand=g.userData.rider&&(clip==='throw'&&age<.18||(state.catchAge??99)<.3);const wielded=g.userData.rider?ridingHand:clip==='throw'||clip.startsWith('slash')||(state.catchAge??99)<.3||(state.windupRatio||0)>0;
+ r.disc.visible=wielded&&!inFlight;r.backDisc.visible=!wielded&&!inFlight;
  const contacts=[];for(const foot of pose.contacts){if(foot.stance&&!m.contacts[foot.side]&&m.speed>1&&!clip&&!g.userData.rider)contacts.push(foot.side);m.contacts[foot.side]=foot.stance}return{contacts,phase:m.phase,speed:m.speed};
 }
 export function cycleModel(color=COLORS.cyan,options={}){

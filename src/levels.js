@@ -82,6 +82,7 @@ const towerStage=(name,x,z,sx,sz,label,objective,radio,guards)=>({
 const towerFloor=(id,name,elevation,rooms,props,stages,shards=[],doors=[])=>prepare({
  id,name,elevation,bounds:{x:124,z:120},rooms,props,stages,shards,doors,encounters:[]
 });
+export const CROWN_FLANK={west:-92,east:-24,base:40,riseEnd:52,rail:56,height:8,tap:{x:-58,y:80,z:56}};
 export const WARDEN_FLOORS=[
  towerFloor('warden-intake','01 / INTAKE',0,[
   rect('PUBLIC INTAKE',0,68,16,16),rect('CHECKPOINT SPINE',0,42,4,14),rect('INTAKE SORTER',-20,24,24,12,false),
@@ -109,7 +110,8 @@ export const WARDEN_FLOORS=[
  [{id:'crown-lift-lock',x:32,z:48,w:4,d:.4,opensAt:1}]),
  towerFloor('warden-crown','03 / BROADCAST CROWN',72,[
   rect('CROWN ARRIVAL',32,76,12,12),rect('ANTENNA WALK',32,52,4,16,false),
-  rect('BROADCAST TERRACE',8,28,28,12,false),rect('ANTENNA TRUSS',-48,28,32,4,false),rect('SIGNAL ARCHIVE',-92,28,16,12),rect('OBSERVATION NICHE',-92,7,9,10,false),rect('SIGNAL RETURN',-92,-19,4,20,false),rect('LOWER GANTRY',-58,-32,36,4,false),rect('ACCESS CATWALK',-16,0,4,20,false),
+  rect('BROADCAST TERRACE',8,28,28,12,false),
+  rect('WEST ACCESS RAMP',-92,44,4,8,false),rect('EAST ACCESS RAMP',-24,44,4,8,false),rect('SIGNAL OVERLOOK',-58,56,38,4,false),rect('ANTENNA TRUSS',-48,28,32,4,false),rect('SIGNAL ARCHIVE',-92,28,16,12),rect('OBSERVATION NICHE',-92,7,9,10,false),rect('SIGNAL RETURN',-92,-19,4,20,false),rect('LOWER GANTRY',-58,-32,36,4,false),rect('ACCESS CATWALK',-16,0,4,20,false),
   rect('CONTROL VAULT',-16,-30,20,16),rect('OUTBOUND GANTRY',0,-55,4,13,false),
   rect('EXTRACTION DECK',0,-77,16,12,false)
  ],[

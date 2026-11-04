@@ -1,10 +1,12 @@
 import * as T from '../vendor/three.module.js';
-import {CELL,roadPoint,FLIGHT_APPROACH,WARDEN_FLOORS,WARDEN_PERMISSIONS,WARDEN_STAIRS} from './levels.js?v=11';
-import {cycleModel,tankModel,COLORS} from './art.js?v=11';
-import {campaignDoors} from './sim.js?v=11';
+import {CELL,roadPoint,FLIGHT_APPROACH,WARDEN_FLOORS,WARDEN_PERMISSIONS,WARDEN_STAIRS,CROWN_FLANK} from './levels.js?v=12';
+import {cycleModel,tankModel,COLORS} from './art.js?v=12';
+import {campaignDoors} from './sim.js?v=12';
 export function buildCampaignWorld(v,s,{black,steel,cyan,orange,dim}){
  const map=s.levelMap,road=!!map.road,stone=v.material(road?0x263340:0x1e303b,{roughness:.87}),floorMat=v.material(0x29424d,{roughness:.75,metalness:.25}),tiles=new T.InstancedMesh(new T.BoxGeometry(CELL,.14,CELL),floorMat,map.floor.size),dummy=new T.Object3D(),color=new T.Color();let index=0;
- for(const cell of map.floor.values()){dummy.position.set(cell.x,-.12,cell.z);dummy.updateMatrix();tiles.setMatrixAt(index,dummy.matrix);color.set(cell.room==='ROAD'?0x172b36:cell.room==='FREIGHT APRON'?0x344957:0x3b525c);tiles.setColorAt(index++,color)}v.root.add(tiles);tiles.receiveShadow=true;
+ for(const cell of map.floor.values()){
+  if(map.id==='warden-crown'&&cell.x< -20&&cell.z>CROWN_FLANK.base&&['WEST ACCESS RAMP','EAST ACCESS RAMP','SIGNAL OVERLOOK'].includes(cell.room))continue;
+  dummy.position.set(cell.x,-.12,cell.z);dummy.updateMatrix();tiles.setMatrixAt(index,dummy.matrix);color.set(cell.room==='ROAD'?0x172b36:cell.room==='FREIGHT APRON'?0x344957:0x3b525c);tiles.setColorAt(index++,color)}tiles.count=index;v.root.add(tiles);tiles.receiveShadow=true;
  const tower=s.chapter===8;
  const walls=new T.InstancedMesh(new T.BoxGeometry(1,1,1),road&&s.chapter===2?stone:black,map.walls.length),seams=new T.InstancedMesh(new T.BoxGeometry(1,1,1),road?cyan:dim,map.walls.length),caps=new T.InstancedMesh(new T.BoxGeometry(1,1,1),steel,map.walls.length);let wallIndex=0;
  for(const o of map.walls){const h=tower&&map.elevation>0&&!map.rooms.some(r=>r.roof&&Math.abs(r.x-o.x)<r.w+.4&&Math.abs(r.z-o.z)<r.d+.4)?1.15:o.h;dummy.position.set(o.x,h/2,o.z);dummy.scale.set(o.w*2,h,o.d*2);dummy.updateMatrix();walls.setMatrixAt(wallIndex,dummy.matrix);dummy.position.y=road?.83:Math.min(h,3.9);dummy.scale.set(o.w*2+.08,.045,o.d*2+.08);dummy.updateMatrix();seams.setMatrixAt(wallIndex,dummy.matrix);dummy.position.y=h-.05;dummy.scale.set(o.w*2+.06,.14,o.d*2+.06);dummy.updateMatrix();caps.setMatrixAt(wallIndex++,dummy.matrix)}v.root.add(walls,seams);if(!road)v.root.add(caps);else{caps.geometry.dispose();caps.dispose()}
@@ -95,6 +97,30 @@ export function buildSpireWorld(v,s,materials){
   const q=points[0],bar=v.box(link.width,2.8,.16,orange,q.x,q.y+1.4,q.z+Math.sign(q.z)*.6);
   v.spireDecks[index].gate=bar;
  }
+ const {west,east,base,riseEnd,rail,height,tap}=CROWN_FLANK;
+ const rampLength=Math.hypot(riseEnd-base,height);
+ for(const x of[west,east]){
+  const ramp=new T.Group();ramp.position.set(x,72+height/2-.15,(base+riseEnd)/2);
+  ramp.rotation.x=-Math.atan2(height,riseEnd-base);v.root.add(ramp);
+  v.box(8,.34,rampLength,steel,0,0,0,ramp);
+  for(const side of[-1,1]){
+   v.box(.11,.12,rampLength,cyan,side*3.9,1,0,ramp);
+   for(let z=-rampLength/2+.9;z<rampLength/2;z+=2.4)v.box(.1,1,.1,steel,side*3.9,.5,z,ramp);
+  }
+ }
+ v.box(east-west+8,.55,8,steel,(west+east)/2,72+height-.28,rail);
+ for(const z of[rail-3.9,rail+3.9]){
+  const inset=z<rail?4:0;
+  v.box(east-west+8-inset*4,.12,.14,cyan,(west+east)/2,72+height+1,z);
+  for(let x=west+inset;x<=east-inset;x+=4)v.box(.13,1,.13,steel,x,72+height+.5,z);
+ }
+ for(const x of[west+10,tap.x,east-10])v.box(1.5,8,1.5,black,x,76,rail+2.7);
+ const panel=v.textPanel('SECURITY OVERRIDE',5.8,.65);
+ panel.position.set(tap.x,tap.y+1.7,tap.z+2.8);panel.rotation.y=Math.PI;v.root.add(panel);
+ v.box(2.6,.9,.5,steel,tap.x,tap.y+.45,tap.z+2.65);
+ v.box(2.35,.09,.5,orange,tap.x,tap.y+.93,tap.z+2.65);
+ const rampSign=v.textPanel('SIGNAL OVERLOOK',5.4,.6);
+ rampSign.position.set(west,74.1,base+2);v.root.add(rampSign);
  // The open shaft gives the lower deck a view of both higher decks and stairs.
  const shaft=v.add(new T.CylinderGeometry(5,5,80,8),black,49,40,0);
  for(let y=4;y<80;y+=6){

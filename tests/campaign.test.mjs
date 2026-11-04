@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as M from '../src/sim.js';
 import {CITY_RELAY,SKYPORT,SKY_EXIT,PATROL_ROUTES,ARGON_ACCESS,ARGON_RETURN} from '../src/world.js';
-import {WARDEN_PERMISSIONS,WARDEN_STAIRS} from '../src/levels.js';
+import {WARDEN_PERMISSIONS,WARDEN_STAIRS,CROWN_FLANK} from '../src/levels.js';
 import {sceneFor,ARCHIVE_SCENE,recap} from '../src/story.js';
 import {jetModel,animateJet,programModel,animateProgram} from '../src/art.js';
 const tick=(s,t,input={})=>{const events=[];for(let i=0;i<Math.ceil(t/.02)&&!s.dead&&!s.finished;i++)events.push(...M.advance(s,.02,input));return events};
@@ -126,6 +126,24 @@ test('disc damage and rewards still work on the raised decks',()=>{
  const orb=s.pickups[0];assert(orb);
  Object.assign(s.player,{x:orb.x,z:orb.z,hp:70});tick(s,.04);
  assert(s.player.hp>70);
+});
+test('the Crown overlook opens the vault with the defenders still active',()=>{
+ const s=M.createRun({profile:{...M.newProfile(),checkpoint:8,wardenFloor:2}});
+ const {west,east,rail,base,tap}=CROWN_FLANK;
+ for(const e of s.enemies)e.stagger=100;
+ Object.assign(s.player,{x:west,z:28});tick(s,.02);
+ assert(s.towerPermissions.has(2));
+ const terminal=s.levelMap.stages[0].point;
+ Object.assign(s.player,terminal);assert(!M.campaignInteraction(s));
+ Object.assign(s.player,{x:west,z:base-1});
+ tick(s,(rail-(base-1))/7,{z:1});assert.equal(s.player.y,80);
+ tick(s,(tap.x-west)/7,{x:1});assert.equal(M.campaignInteraction(s)?.label,'REROUTE');
+ assert(M.act(s,'interact'));tick(s,.4);
+ assert(s.profile.wardenBypass);assert(s.enemies.some(e=>e.alive));
+ tick(s,(east-s.player.x)/7,{x:1});tick(s,(s.player.z-base+2)/7,{z:-1});
+ assert.equal(s.player.y,72);
+ Object.assign(s.player,terminal);assert(M.act(s,'interact'));tick(s,.4);
+ assert.equal(s.levelStage,1);
 });
 test('a jet can cut an interceptor with its trail while another altitude clears the same path',()=>{
  const s=M.createRun({mode:'jet'});
