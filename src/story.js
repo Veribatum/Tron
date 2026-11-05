@@ -1,4 +1,4 @@
-import {CHAPTERS} from './world.js?v=12';
+import {CHAPTERS} from './world.js?v=13';
 const shot=(speaker,text,camera,look)=>({speaker,text,camera,look});
 export function sceneFor(chapter){
  const scenes=[
@@ -9,8 +9,9 @@ export function sceneFor(chapter){
   [shot('ARGON / BEFORE THE ERASURE','Thousands of programs are still living their last ordinary cycle. The Warden’s patrols have sealed the avenues.',[-26,100,76],[0,1,20]),shot('MARA / FREE PROGRAM','ECHO sent me. Start at the east transit tap. It’ll get us into the scanner network. Cross to the west service alley and jam the Recognizer so we can reach Flynn’s relay.',[-2.8,1.98,69],[-5,1.5,67])],
   [shot('ECHO','The root key marked three erasure uplinks above Argon. Break their connection to the city, then follow my signal home.',[-12,48,153],[0,37,110]),shot('THE WARDEN','Unregistered aircraft. The city’s memory is under my protection.',[38,66,-74],[65,58,-103])],
   [shot('ARGON / FIRST FREE CYCLE','The aerial array is severed. The Warden’s ground reserve still has a copy of the erasure order.',[-14,95,75],[0,2,5]),shot('ECHO','Land at Skyport 07 and open the service lift. We need the captain’s bridge cipher to reach the isolation switch.',[42,6,-64],[34,1,-70])],
-  [shot('DEPOT CONTROL','Armory release requires a registered champion. Enter the Grid. Light walls decide the match.',[15,26,53],[0,0,-10]),shot('ECHO','Outlast the riders, then take the champion’s exit. I’ll use the release code to unlock the siege tank.',[7,5,49],[0,1,35])],
-  [shot('ECHO','The Warden’s command link is at the top of that spire. Start in the west credentials archive. Its key opens the captive records.',[126,55,137],[0,35,0]),shot('MARA','I’ll take the captives out. Follow the stairs above intake and cut the broadcast from the crown.',[8,5,79],[0,1,57])]
+  [shot('DEPOT CONTROL','Armory release requires a registered champion. Enter the Grid. Light walls decide the match.',[15,26,53],[0,0,-10]),shot('ECHO','Win the qualifier and the siege tank is ours. You can stay for three more matches to challenge the Grid champions, or take the release code and follow Flynn’s signal.',[7,5,49],[0,1,35])],
+  [shot('ECHO','The Warden’s command link is at the top of that spire. Start in the west credentials archive. Its key opens the captive records.',[126,55,137],[0,35,0]),shot('MARA','I’ll take the captives out. Follow the stairs above intake and cut the broadcast from the crown.',[8,5,79],[0,1,57])],
+  [shot('THE WARDEN','Erasure array offline. Seal the return corridor. All interceptors, converge.',[-12,68,145],[0,40,-75]),shot('ECHO','They turned the sea channel into an air arena. Derez the blockade squadron to open a route home. Your light ribbon is a weapon. Once the corridor opens, you can stay and clear their remaining squadrons or return to Argon.',[12,44,155],[0,38,95])]
  ];return{title:CHAPTERS[chapter],shots:scenes[chapter]||[]};
 }
 export const EPILOGUE_SCENE={title:'ARGON / FIRST FREE CYCLE',shots:[
@@ -36,5 +37,5 @@ export function recap(s){
   s.gate?'The uplinks are down. Follow ECHO’s return signal to leave the array.':'Destroy the three erasure uplinks above Argon. They connect the Warden’s kill list to the city.',
   s.profile.cleared?'Argon survived the erasure cycle. You can explore the district and speak with Mara.':'Cut off the Warden’s ground reserve and use Flynn’s key to restore the registry.',
   'Win the Light Cycle Grid to release the siege tank. Use your light wall to trap the depot riders.'
- ];return task[s.chapter];
+ ];if(s.chapter===9)return 'The Warden sealed the return corridor. Defeat the blockade squadron to reach Argon. Further matches clear the patrol reserve and earn circuit ranks.';return task[s.chapter];
 }

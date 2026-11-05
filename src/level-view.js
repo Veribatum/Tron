@@ -1,7 +1,7 @@
 import * as T from '../vendor/three.module.js';
-import {CELL,roadPoint,FLIGHT_APPROACH,WARDEN_FLOORS,WARDEN_PERMISSIONS,WARDEN_STAIRS,CROWN_FLANK} from './levels.js?v=12';
-import {cycleModel,tankModel,COLORS} from './art.js?v=12';
-import {campaignDoors} from './sim.js?v=12';
+import {CELL,roadPoint,FLIGHT_APPROACH,WARDEN_FLOORS,WARDEN_PERMISSIONS,WARDEN_STAIRS,CROWN_FLANK} from './levels.js?v=13';
+import {cycleModel,tankModel,COLORS} from './art.js?v=13';
+import {campaignDoors} from './sim.js?v=13';
 export function buildCampaignWorld(v,s,{black,steel,cyan,orange,dim}){
  const map=s.levelMap,road=!!map.road,stone=v.material(road?0x263340:0x1e303b,{roughness:.87}),floorMat=v.material(0x29424d,{roughness:.75,metalness:.25}),tiles=new T.InstancedMesh(new T.BoxGeometry(CELL,.14,CELL),floorMat,map.floor.size),dummy=new T.Object3D(),color=new T.Color();let index=0;
  for(const cell of map.floor.values()){

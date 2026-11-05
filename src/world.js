@@ -22,7 +22,7 @@ export const CIVIC_ROUTES=[
 export const SKY_TOWERS=[{x:-24,z:63,w:7,d:11,h:38},{x:35,z:15,w:9,d:13,h:48},{x:-28,z:-91,w:8,d:9,h:65},{x:36,z:-48,w:8,d:12,h:56},{x:101,z:-39,w:9,d:12,h:37},{x:-96,z:-79,w:9,d:10,h:53},{x:-130,z:-125,w:12,d:16,h:58},{x:129,z:-133,w:13,d:18,h:67},{x:-133,z:0,w:11,d:15,h:49},{x:130,z:19,w:12,d:15,h:54},{x:-87,z:105,w:13,d:13,h:41},{x:87,z:104,w:12,d:12,h:45}];
 export const SKY_CORES=[{x:-64,y:36,z:-35},{x:65,y:58,z:-103},{x:0,y:43,z:-169}];
 export const SKY_EXIT={x:0,y:43,z:176};
-export const CHAPTERS=['ARCHIVE / THE UNLISTED','FREIGHT LINE 07','THE DRY AQUEDUCT','WHITE SIGNAL','ARGON / SILENT DISTRICT','THE MEMORY LATTICE','ARGON / GROUND RESERVE','DEPOT 07 / LIGHT CYCLE GRID','WARDEN SPIRE'];
+export const CHAPTERS=['ARCHIVE / THE UNLISTED','FREIGHT LINE 07','THE DRY AQUEDUCT','WHITE SIGNAL','ARGON / SILENT DISTRICT','THE MEMORY LATTICE','ARGON / GROUND RESERVE','DEPOT 07 / LIGHT CYCLE GRID','WARDEN SPIRE','RETURN CORRIDOR / LIGHT JET CIRCUIT'];
 
 export const ARGON_ACCESS=[
  {x:36,z:45,label:'TRANSIT TAP',action:'SPOOF',objective:'Spoof a transit identity at the east checkpoint',radio:'MARA: You have a transit identity. Take the cross street to the west alley and blind the Recognizer.'},

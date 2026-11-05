@@ -1,8 +1,8 @@
-import {buildCampaignWorld,buildSpireWorld,updateCampaignWorld,powerModel,buildFlightChannels} from './level-view.js?v=12';
-import {CITY_BUILDINGS,CITY_RELAY,SKYPORT,SKY_TOWERS,SKY_EXIT,ARGON_ACCESS,ARGON_RETURN,ARGON_BRIDGE,ARGON_SERVICE_SPAN,ARGON_SERVICE_CACHE,ARGON_RECOVERY} from './world.js?v=12';
+import {buildCampaignWorld,buildSpireWorld,updateCampaignWorld,powerModel,buildFlightChannels} from './level-view.js?v=13';
+import {CITY_BUILDINGS,CITY_RELAY,SKYPORT,SKY_TOWERS,SKY_EXIT,ARGON_ACCESS,ARGON_RETURN,ARGON_BRIDGE,ARGON_SERVICE_SPAN,ARGON_SERVICE_CACHE,ARGON_RECOVERY} from './world.js?v=13';
 import * as T from '../vendor/three.module.js';
-import {COLORS,programModel,cycleModel,discModel,tankModel,recognizer,animateProgram,animateCycle,animateTank,jetModel,animateJet} from './art.js?v=12';
-import {coverOf,boundsOf,gateOf,targetOf,forward,clamp,wrap,isCity,isVehicle,isCycle,isTank,aimSolution,navigationTarget} from './sim.js?v=12';
+import {COLORS,programModel,cycleModel,discModel,tankModel,recognizer,animateProgram,animateCycle,animateTank,jetModel,animateJet} from './art.js?v=13';
+import {coverOf,boundsOf,gateOf,targetOf,forward,clamp,wrap,isCity,isVehicle,isCycle,isTank,isJet,isArena,arenaOf,arenaRound,skyTowersOf,aimSolution,navigationTarget} from './sim.js?v=13';
 const vshader='varying vec2 uv0;void main(){uv0=uv;gl_Position=vec4(position.xy,0.,1.);}';
 export class GridView{
  constructor(canvas,{low=false}={}){
@@ -16,7 +16,7 @@ export class GridView{
  circuitTexture(){const c=document.createElement('canvas');c.width=c.height=512;const x=c.getContext('2d');x.fillStyle='#14232f';x.fillRect(0,0,512,512);x.strokeStyle='#284554';x.lineWidth=2;for(let i=0;i<=512;i+=64){x.beginPath();x.moveTo(i,0);x.lineTo(i,512);x.moveTo(0,i);x.lineTo(512,i);x.stroke()}x.strokeStyle='#335563';x.lineWidth=1;for(let i=0;i<8;i++){const a=i*64;x.beginPath();x.moveTo(a+16,8);x.lineTo(a+16,36);x.lineTo(a+35,55);x.lineTo(a+35,150+i*30);x.stroke()}const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set(14,14);return t}
  clear(){const geos=new Set(),mats=new Set(),textures=new Set();this.root.traverse(o=>{if(o.geometry)geos.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])if(m){mats.add(m);if(m.map)textures.add(m.map)}});geos.forEach(g=>g.dispose());mats.forEach(m=>m.dispose());textures.forEach(t=>t.dispose());this.root.clear();this.units.clear();this.discs.clear();this.orbs.clear();this.shells.clear();this.bolts.clear();this.cores.clear();this.fx=[];this.fallen=[];this.lastPlayer=null;this.target=null;this.ally=null;this.archiveFigure=null;this.scanBeam=null;this.waypoint=null;this.returnBeacon=null;this.argonBridge=null;this.serviceCache=null;this.bridgeGate=null;this.argonConsoles=null;this.spireDecks=null;this.levelDoors=null;this.levelShards=null;this.lastShot=null;}
  build(s){
-  this.clear();this.chapter=s.chapter;this.towerFloor=s.towerFloor;this.onFoot=!!s.onFoot;this.color=COLORS[s.profile.color]||COLORS.cyan;const cycle=isCycle(s),tank=isTank(s),refuge=s.chapter===3,sky=s.chapter===5,city=isCity(s),b=boundsOf(s),black=this.material(0x080f18),steel=this.material(0x17232e),glass=this.material(0x0a1c27,{roughness:.15}),cyan=new T.MeshBasicMaterial({color:0x3dd9f3}),orange=new T.MeshBasicMaterial({color:0xff8b44}),dim=new T.MeshBasicMaterial({color:0x123444});
+  this.clear();this.chapter=s.chapter;this.arenaRound=arenaRound(s);this.towerFloor=s.towerFloor;this.onFoot=!!s.onFoot;this.color=COLORS[s.profile.color]||COLORS.cyan;const cycle=isCycle(s),tank=isTank(s),refuge=s.chapter===3,sky=isJet(s),city=isCity(s),b=boundsOf(s),black=this.material(0x080f18),steel=this.material(0x17232e),glass=this.material(0x0a1c27,{roughness:.15}),cyan=new T.MeshBasicMaterial({color:0x3dd9f3}),orange=new T.MeshBasicMaterial({color:0xff8b44}),dim=new T.MeshBasicMaterial({color:0x123444});
   this.scene.fog.density=sky?.0025:s.chapter===8?.0038:city?.0055:.007;if(s.chapter===8){buildSpireWorld(this,s,{black,steel,cyan,orange,dim})}else if(s.levelMap){buildCampaignWorld(this,s,{black,steel,cyan,orange,dim})}else{const ground=this.material(refuge?0x8c9da4:tank?0x3b4652:0x617d90,{map:this.circuitTexture(),roughness:.8,metalness:.1});if(!sky){this.box(b.x*2+2,.5,b.z*2+2,ground,0,-.3,0);this.box(b.x*2+8,2,b.z*2+8,black,0,-1.5,0)}
   for(const side of[-1,1]){this.box(1.3,cycle?4:2.8,b.z*2+3,black,side*(b.x+1),cycle?2:1.4,0);this.box(.07,.1,b.z*2,cyan,side*b.x,.15,0);this.box(.07,.08,b.z*2,dim,side*b.x,cycle?4:2.8,0);this.box(b.x*2+3,3,1.3,black,0,1.5,side*(b.z+1));this.box(b.x*2,.1,.07,cycle?orange:cyan,0,.15,side*b.z)}
   if(s.chapter===0){
@@ -29,7 +29,7 @@ export class GridView{
      this.box(o.w*2,o.h,o.d*2,black,o.x,o.h/2,o.z);
      for(const side of [-1,1])this.box(.08,.1,o.d*2,orange,o.x+side*o.w,o.h+.03,o.z);
     }
-    const sign=this.textPanel(s.profile.gridHeat===1?'07 / CHAMPION EXIT':'07 / FINAL HEAT',16,1.6);sign.position.set(0,9,-58);this.root.add(sign);
+    const sign=this.textPanel((arenaRound(s)+1)+' / '+arenaOf(s).name,16,1.6);sign.position.set(0,9,-58);this.root.add(sign);
     for(let i=-80;i<=80;i+=10){this.box(.065,.02,130,i%20===0?cyan:dim,i,.015,0)}
     for(let i=-60;i<=60;i+=10){this.box(176,.02,.065,i%20===0?cyan:dim,0,.016,i)}
    }
@@ -37,7 +37,7 @@ export class GridView{
    for(const side of[-1,1])for(let i=0;i<8;i++){const g=new T.Group();g.position.set(side*98,0,-58+i*17);this.root.add(g);this.box(5,12,3,black,0,6,0,g);this.box(.08,10,.08,orange,-side*2.5,6,1.55,g);this.box(12,.8,3,black,-side*5,12,0,g)}
   }
   if(tank)this.buildOutlands(s,black,steel,cyan);if(refuge)this.buildRefuge(black,steel);if(city)this.buildCity(s,black,steel,cyan,dim);if(sky)this.buildSky(s,black,steel,cyan);}
-  this.gate=new T.Group();this.gate.position.set(gateOf(s).x,gateOf(s).y||0,gateOf(s).z);this.gate.visible=!s.levelMap&&!refuge&&!city&&!sky;this.root.add(this.gate);for(const side of[-1,1]){this.box(1.3,8,2,steel,side*4.7,4,0,this.gate);this.box(.1,7,.1,cyan,side*4,4,1.05,this.gate)}this.box(10,1,2,black,0,8,0,this.gate);this.gateSheet=this.add(new T.PlaneGeometry(7,7),new T.MeshBasicMaterial({color:0xff7938,transparent:true,opacity:.24,side:T.DoubleSide,depthWrite:false}),0,3.5,0,this.gate);
+  this.gate=new T.Group();this.gate.position.set(gateOf(s).x,gateOf(s).y||0,gateOf(s).z);this.gate.visible=!s.levelMap&&!refuge&&!city&&!sky&&!isArena(s);this.root.add(this.gate);for(const side of[-1,1]){this.box(1.3,8,2,steel,side*4.7,4,0,this.gate);this.box(.1,7,.1,cyan,side*4,4,1.05,this.gate)}this.box(10,1,2,black,0,8,0,this.gate);this.gateSheet=this.add(new T.PlaneGeometry(7,7),new T.MeshBasicMaterial({color:0xff7938,transparent:true,opacity:.24,side:T.DoubleSide,depthWrite:false}),0,3.5,0,this.gate);
   this.gateGlow=new T.PointLight(0x62eaff,24,18,2);this.gateGlow.position.set(0,3,2);this.gate.add(this.gateGlow);
   // A surrounding city with readable silhouettes and sparse illuminated seams.
   const random=(()=>{let n=s.seed;return()=>{n=(Math.imul(n,1664525)+1013904223)>>>0;return n/4294967296}})();
@@ -60,7 +60,7 @@ export class GridView{
  }
  update(s,dt,{yaw,pitch,attract=false,look=false,paused=false,cinematic=null}={}){
   const cameraDt=dt;if(paused)dt=0;
-  if(s.chapter!==this.chapter||!!s.onFoot!==this.onFoot)this.build(s);this.time+=dt;const p=s.player;
+  if(this.arenaRound!==arenaRound(s)||s.chapter!==this.chapter||!!s.onFoot!==this.onFoot)this.build(s);this.time+=dt;const p=s.player;
   if(this.argonBridge)this.argonBridge.visible=s.argonStage>=2||s.chapter===6&&s.profile.cleared;
   if(this.serviceCache){this.serviceCache.visible=!s.profile.serviceCache;this.serviceCache.rotation.y=this.time;}
   if(this.bridgeGate)this.bridgeGate.visible=s.argonStage<2&&!s.profile.cleared;
@@ -105,15 +105,15 @@ export class GridView{
   for(const fx of this.fx){fx.age+=dt;const t=fx.age/fx.life;fx.g.material.opacity=(fx.smoke?.28:1)*Math.max(0,1-t);if(fx.ring)fx.g.scale.setScalar(1+t*fx.size);else if(fx.slash)fx.g.scale.setScalar(.9+t*.3);else{fx.particles.forEach((q,i)=>{q.x+=q.dx*dt;q.y+=q.dy*dt;q.z+=q.dz*dt;q.dy-=(fx.smoke?-.4:12)*dt;dummy.position.set(q.x,Math.max(.05,q.y),q.z);dummy.rotation.set(t*8+i,t*5+i,0);dummy.scale.setScalar(fx.smoke?.5+t*2:Math.max(.02,1-t));dummy.updateMatrix();fx.g.setMatrixAt(i,dummy.matrix)});fx.g.instanceMatrix.needsUpdate=true}if(t>=1){fx.g.removeFromParent();this.disposeObject(fx.g)}}this.fx=this.fx.filter(f=>f.age<f.life);
   for(const [id,g]of this.bolts)if(!s.bolts.some(b=>b.id===id)){g.removeFromParent();this.disposeObject(g);this.bolts.delete(id)}for(const b of s.bolts){let g=this.bolts.get(b.id);if(!g){g=this.add(new T.CapsuleGeometry(.075,.95,3,8),new T.MeshBasicMaterial({color:b.owner==='player'?this.color:COLORS.orange}));this.bolts.set(b.id,g)}g.position.set(b.x,b.y,b.z);g.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),new T.Vector3(b.dx,b.dy,b.dz))}
   for(const core of s.cores){const g=this.cores.get(core.id);if(g){g.visible=core.alive;g.rotation.y=this.time*.3;g.userData.inner.rotation.z=this.time*.6;g.userData.health.scale.x=core.hp/core.maxHp;g.userData.health.quaternion.copy(this.camera.quaternion).premultiply(g.quaternion.clone().invert())}}
-  if(!this.waypoint){this.waypoint=this.add(new T.RingGeometry(1.4,1.55,48),new T.MeshBasicMaterial({color:0xe2ffff,side:T.DoubleSide,transparent:true,opacity:.7,depthWrite:false}));this.waypoint.rotation.x=-Math.PI/2}this.waypoint.visible=!!s.levelMap||s.gate||s.chapter===3||isCity(s)||s.chapter===5;const waypoint=navigationTarget(s).point;this.waypoint.position.set(waypoint.x,(waypoint.y||0)+(s.chapter===8?.16:waypoint.y?0:.1),waypoint.z);this.waypoint.scale.setScalar(s.chapter===5?5:1);if(s.chapter===5)this.waypoint.quaternion.copy(this.camera.quaternion);else this.waypoint.rotation.set(-Math.PI/2,0,0);if(this.returnBeacon)this.returnBeacon.visible=s.gate;
-  updateCampaignWorld(this,s);const target=targetOf(s);if(!this.target){this.target=this.add(new T.RingGeometry(.85,.91,40),new T.MeshBasicMaterial({color:0xd4f5ff,side:T.DoubleSide,transparent:true,opacity:.7,depthWrite:false}));this.target.rotation.x=-Math.PI/2}this.target.visible=!!target&&s.chapter!==5;if(target)this.target.position.set(target.x,(target.y||0)+.08,target.z);
+  if(!this.waypoint){this.waypoint=this.add(new T.RingGeometry(1.4,1.55,48),new T.MeshBasicMaterial({color:0xe2ffff,side:T.DoubleSide,transparent:true,opacity:.7,depthWrite:false}));this.waypoint.rotation.x=-Math.PI/2}this.waypoint.visible=!s.arenaOffer&&(!!s.levelMap||s.gate||s.chapter===3||isCity(s)||isJet(s));const waypoint=navigationTarget(s).point;this.waypoint.position.set(waypoint.x,(waypoint.y||0)+(s.chapter===8?.16:waypoint.y?0:.1),waypoint.z);this.waypoint.scale.setScalar(isJet(s)?5:1);if(isJet(s))this.waypoint.quaternion.copy(this.camera.quaternion);else this.waypoint.rotation.set(-Math.PI/2,0,0);if(this.returnBeacon)this.returnBeacon.visible=s.gate&&s.chapter!==9;
+  updateCampaignWorld(this,s);const target=targetOf(s);if(!this.target){this.target=this.add(new T.RingGeometry(.85,.91,40),new T.MeshBasicMaterial({color:0xd4f5ff,side:T.DoubleSide,transparent:true,opacity:.7,depthWrite:false}));this.target.rotation.x=-Math.PI/2}this.target.visible=!!target&&!isJet(s);if(target)this.target.position.set(target.x,(target.y||0)+.08,target.z);
   this.gateSheet.material.color.set(s.gate?0x6cffff:0xff7835);this.gateSheet.material.opacity=s.gate?.12:.3;this.ship.position.x=Math.sin(this.time*.025)*95;this.ship.position.z=-90+Math.cos(this.time*.025)*30;this.ship.rotation.y=Math.sin(this.time*.025)*.25;if(isCity(s)){this.ship.position.set(s.scanner.x,70,s.scanner.z);if(this.scanBeam)this.scanBeam.position.set(s.scanner.x,35,s.scanner.z)}this.playerLight.position.set(p.x,(p.y||0)+2.7,p.z+1);this.playerLight.color.set(this.color);
   const returnFromScene=!!this.lastShot&&!cinematic;if(!cinematic)this.lastShot=null;
   if(cinematic){if(this.lastShot!==cinematic){this.camera.position.set(...cinematic.camera);this.lastShot=cinematic}this.camera.position.lerp(new T.Vector3(...cinematic.camera),1-Math.exp(-cameraDt*2.5));this.camera.lookAt(...cinematic.look);this.camera.fov=55;this.camera.updateProjectionMatrix()}else if(attract){const a=Math.sin(this.time*.15)*.12;this.camera.position.set(p.x-1.3+a,1.65,p.z-4.7);this.camera.fov=40;this.camera.updateProjectionMatrix();this.camera.lookAt(p.x+Math.min(1.3,this.camera.aspect*.7),1.05,p.z-.3);const hero=this.units.get('player');if(hero)hero.rotation.y=Math.PI+.15;}else{
    if(isVehicle(s)&&!look)this.yaw+=Math.atan2(Math.sin(p.yaw-this.yaw),Math.cos(p.yaw-this.yaw))*Math.min(1,dt*4);else if(Number.isFinite(yaw))this.yaw=yaw;
-   const angle=Number.isFinite(pitch)?pitch:.3,d=s.chapter===5?14:isTank(s)?12:isCycle(s)?7.6:4.6,height=s.chapter===5?4:isTank(s)?4.2:isCycle(s)?3.2:1.35+angle*1.2,targetPos=new T.Vector3(p.x,(p.y||0)+(s.chapter===5?0:1.2),p.z),desired=new T.Vector3(p.x-Math.sin(this.yaw)*d,targetPos.y+height,p.z-Math.cos(this.yaw)*d);const offset=s.chapter===5?1:isTank(s)?3:isCycle(s)?2.4:.7;desired.x-=Math.cos(this.yaw)*offset;desired.z+=Math.sin(this.yaw)*offset;
-   if(!isCycle(s)&&s.chapter!==5&&!s.towerTransit&&(s.chapter!==8||p.y-s.levelMap.elevation<1))for(let i=1;i<=16;i++){const t=i/16,x=targetPos.x+(desired.x-targetPos.x)*t,z=targetPos.z+(desired.z-targetPos.z)*t;if(coverOf(s).some(o=>Math.abs(x-o.x)<o.w+.4&&Math.abs(z-o.z)<o.d+.4)){desired.lerpVectors(targetPos,desired,Math.max(.15,t-.1));break}}
-   if(returnFromScene)this.camera.position.copy(desired);else this.camera.position.lerp(desired,1-Math.exp(-dt*12));const ahead=forward(this.yaw);this.camera.lookAt(targetPos.x+ahead.x*(s.chapter===5?30:isTank(s)?4:isCycle(s)?4:1.25),targetPos.y+(s.chapter===5?Math.sin(p.pitch)*24:s.chapter===8?(.3-angle)*6:0),targetPos.z+ahead.z*(s.chapter===5?30:isTank(s)?4:isCycle(s)?4:1.25));this.camera.fov+=( (s.chapter===5?(p.boosting?77:68):isCycle(s)?(p.boosting?76:67):isTank(s)?64:58)-this.camera.fov)*Math.min(1,dt*4);this.camera.updateProjectionMatrix();if(s.shake>0){this.camera.position.x+=(Math.random()-.5)*s.shake*.6;this.camera.position.y+=(Math.random()-.5)*s.shake*.4}
+   const angle=Number.isFinite(pitch)?pitch:.3,d=isJet(s)?14:isTank(s)?12:isCycle(s)?7.6:4.6,height=isJet(s)?4:isTank(s)?4.2:isCycle(s)?3.2:1.35+angle*1.2,targetPos=new T.Vector3(p.x,(p.y||0)+(isJet(s)?0:1.2),p.z),desired=new T.Vector3(p.x-Math.sin(this.yaw)*d,targetPos.y+height,p.z-Math.cos(this.yaw)*d);const offset=isJet(s)?1:isTank(s)?3:isCycle(s)?2.4:.7;desired.x-=Math.cos(this.yaw)*offset;desired.z+=Math.sin(this.yaw)*offset;
+   if(!isCycle(s)&&!isJet(s)&&!s.towerTransit&&(s.chapter!==8||p.y-s.levelMap.elevation<1))for(let i=1;i<=16;i++){const t=i/16,x=targetPos.x+(desired.x-targetPos.x)*t,z=targetPos.z+(desired.z-targetPos.z)*t;if(coverOf(s).some(o=>Math.abs(x-o.x)<o.w+.4&&Math.abs(z-o.z)<o.d+.4)){desired.lerpVectors(targetPos,desired,Math.max(.15,t-.1));break}}
+   if(returnFromScene)this.camera.position.copy(desired);else this.camera.position.lerp(desired,1-Math.exp(-dt*12));const ahead=forward(this.yaw);this.camera.lookAt(targetPos.x+ahead.x*(isJet(s)?30:isTank(s)?4:isCycle(s)?4:1.25),targetPos.y+(isJet(s)?Math.sin(p.pitch)*24:s.chapter===8?(.3-angle)*6:0),targetPos.z+ahead.z*(isJet(s)?30:isTank(s)?4:isCycle(s)?4:1.25));this.camera.fov+=( (isJet(s)?(p.boosting?77:68):isCycle(s)?(p.boosting?76:67):isTank(s)?64:58)-this.camera.fov)*Math.min(1,dt*4);this.camera.updateProjectionMatrix();if(s.shake>0){this.camera.position.x+=(Math.random()-.5)*s.shake*.6;this.camera.position.y+=(Math.random()-.5)*s.shake*.4}
   }
   if(this.archiveFigure){this.archiveFigure.rotation.y=Math.sin(this.time*.3)*.1;animateProgram(this.archiveFigure,dt,{});this.archiveFigure.position.y=1.1+Math.sin(this.time*1.5)*.025;}
   this.render();
@@ -208,9 +208,18 @@ export class GridView{
    const x=(i*113)%430-215,z=(i*83)%500-250;
    this.box(4+i%14,.015,.08,i%8===0?cyan:ripple,x,-1.55,z);
   }
-  if(s.mode==='story')buildFlightChannels(this,steel,cyan);
-  for(const o of SKY_TOWERS){this.box(o.w*2,o.h,o.d*2,black,o.x,o.h/2,o.z);for(const side of[-1,1])this.box(.10,o.h,.08,cyan,o.x+side*(o.w-.2),o.h/2,o.z+o.d+.04);this.box(o.w*2,.2,o.d*2,steel,o.x,o.h,o.z)}
+  if(s.mode==='story'&&s.chapter===5)buildFlightChannels(this,steel,cyan);
+  for(const o of skyTowersOf(s)){this.box(o.w*2,o.h,o.d*2,black,o.x,o.h/2,o.z);for(const side of[-1,1])this.box(.10,o.h,.08,cyan,o.x+side*(o.w-.2),o.h/2,o.z+o.d+.04);this.box(o.w*2,.2,o.d*2,steel,o.x,o.h,o.z)}
   for(const core of s.cores){const g=new T.Group();g.position.set(core.x,core.y,core.z);this.root.add(g);this.box(2,11,2,steel,0,0,0,g);const inner=this.add(new T.OctahedronGeometry(3.2),new T.MeshBasicMaterial({color:0xff9b5e}),0,0,0,g);g.userData.inner=inner;for(const rotation of[0,Math.PI/2]){const ring=this.add(new T.TorusGeometry(4.8,.12,6,48),new T.MeshBasicMaterial({color:0xff9c5a}),0,0,0,g);ring.rotation.y=rotation}const health=this.add(new T.PlaneGeometry(5,.2),new T.MeshBasicMaterial({color:0xffad7d,depthTest:false}),0,7,0,g);g.userData.health=health;this.cores.set(core.id,g)}
+  if(s.chapter===9){
+   const b=boundsOf(s),edge=new T.MeshBasicMaterial({color:0x3dd9f3,transparent:true,opacity:.15,side:T.DoubleSide,depthWrite:false});
+   for(const side of[-1,1]){
+    this.add(new T.PlaneGeometry(b.z*2,78),edge,side*b.x,54,0).rotation.y=Math.PI/2;
+    this.add(new T.PlaneGeometry(b.x*2,78),edge,0,54,side*b.z);
+    for(const x of[-130,-65,0,65,130]){this.box(.15,88,.15,cyan,x,44,side*b.z);this.box(16,3,9,steel,x,4,side*(b.z+7));}
+   }
+   const sign=this.textPanel((arenaRound(s)+1)+' / '+arenaOf(s).name,60,5);sign.position.set(0,105,-195);this.root.add(sign);
+  }
   const beacon=this.add(new T.TorusGeometry(13,.18,8,64),cyan,SKY_EXIT.x,SKY_EXIT.y,SKY_EXIT.z);beacon.rotation.y=0;this.returnBeacon=beacon;
  }
  buildOutlands(s,black,steel,cyan){
